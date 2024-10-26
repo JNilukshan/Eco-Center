@@ -11,7 +11,7 @@ const {
   getDriverProfile,
   updateProfilePhoto,
   deleteAccount,
-  getAvailableDrivers
+  getAvailableDrivers,
 } = require('../controllers/authController');
 
 const router = express.Router();

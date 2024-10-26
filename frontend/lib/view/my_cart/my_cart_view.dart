@@ -23,8 +23,7 @@ class _MyCartViewState extends State<MyCartView> {
   double getTotalPrice() {
     double total = 0.0;
     for (var item in widget.cartItems) {
-      total += double.parse(item["price"].toString().replaceAll("Rs.", "")) *
-          item["qty"];
+      total += item["unitprice"] * item["qty"];
     }
     return total;
   }
@@ -49,15 +48,7 @@ class _MyCartViewState extends State<MyCartView> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MainTabView(
-                  userId: widget.userId,
-                  role: widget.role,
-                ),
-              ),
-            );
+            Navigator.pop(context); // Navigate back to HomeView
           },
         ),
       ),
@@ -73,10 +64,11 @@ class _MyCartViewState extends State<MyCartView> {
                     itemBuilder: (context, index) {
                       var item = widget.cartItems[index];
                       return ListTile(
-                        leading:
-                            Image.asset(item["icon"], width: 50, height: 50),
-                        title: Text(item["name"]),
-                        subtitle: Text("Rs. ${item["price"]}"),
+                        leading: item["icon"] != null
+                            ? Image.asset(item["icon"], width: 50, height: 50)
+                            : Icon(Icons.image, size: 50),
+                        title: Text(item["name"] ?? "Unknown"),
+                        subtitle: Text("Unit Price: Rs. ${item["unitprice"]}"),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -86,7 +78,7 @@ class _MyCartViewState extends State<MyCartView> {
                                 updateItemQuantity(index, -1);
                               },
                             ),
-                            Text('${item["qty"]} ${item["unit"]}'),
+                            Text('${item["qty"]} kg'), // Display quantity with kg
                             IconButton(
                               icon: const Icon(Icons.add),
                               onPressed: () {

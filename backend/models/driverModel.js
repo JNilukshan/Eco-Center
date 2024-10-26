@@ -7,7 +7,7 @@ const driverSchema = new mongoose.Schema({
   photo: {type: String,default: null},
   password: { type: String, required: true },
   vehicleType: { type: String },
-  licenseExpiryDate: { type: Date },
+  vehicalnumber: { type: Date },
   phone: {
     type: String,
     required: true,

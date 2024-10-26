@@ -8,7 +8,7 @@ const fs = require('fs');
 //register wholesellers and truckdrivers
 
 exports.createUser = async (req, res) => {
-  const { name, email, password, address,phone, vehicleType, licenseExpiryDate, role } = req.body;
+  const { name, email, password, address,phone, vehicleType, vehicalnumber, role } = req.body;
   
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -22,7 +22,7 @@ exports.createUser = async (req, res) => {
         address,
         phone,
         vehicleType,
-        licenseExpiryDate,
+        vehicalnumber,
       });
 
       await newDriver.save();
@@ -126,7 +126,7 @@ exports.updateDriver = async (req, res) => {
     driver.address = address || driver.address;
     driver.role = role || driver.role;
     driver.vehicleType = vehicleType || driver.vehicleType;
-    driver.licenseExpiryDate = licenseExpiryDate || driver.licenseExpiryDate;
+    driver.vehicalnumber = vehicalnumber || driver.vehicalnumber;
 
     if (password) {
       driver.password = await bcrypt.hash(password, 10);
@@ -193,6 +193,25 @@ exports.deleteAccount = async (req, res) => {
   }
 };
 
+
+
+// Configure Nodemailer for sending OTPs
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
+
+
+
 //send otp to email
 exports.sendOtp = async (req, res) => {
   const { email } = req.body;
@@ -225,7 +244,7 @@ exports.sendOtp = async (req, res) => {
     await transporter.sendMail(mailOptions);
     res.status(200).json({ message: 'OTP sent to your email.' });
   } catch (error) {
-    console.error(error);
+    console.error("Error sending OTP:", error);
     res.status(500).json({ message: 'Error sending OTP' });
   }
 };
@@ -415,3 +434,7 @@ exports.getAvailableDrivers = async (req, res) => {
     res.status(500).json({ message: 'Error fetching drivers', error });
   }
 };
+
+
+
+

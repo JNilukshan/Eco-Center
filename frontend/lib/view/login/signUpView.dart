@@ -39,7 +39,7 @@ class _SignUpViewState extends State<SignUpView> {
 
   Future<void> signupUser(
       String name, String email, String password, String address, String phone,
-      {String? vehicleType, String? licenseExpiryDate}) async {
+      {String? vehicleType, String? vehicalnumber}) async {
     // Check if phone number is exactly 10 digits
     if (phone.length != 10) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -63,7 +63,7 @@ class _SignUpViewState extends State<SignUpView> {
           'address': address,
           'phone': phone, // Include phone number
           'vehicleType': vehicleType ?? '',
-          'licenseExpiryDate': licenseExpiryDate ?? '',
+          'vehicalnumber': vehicalnumber ?? '',
           'role': widget.role,
         }),
       );
@@ -208,8 +208,8 @@ class _SignUpViewState extends State<SignUpView> {
                     SizedBox(height: media.width * 0.04),
                     LineTextfield(
                       controller: txtLicenseExpiry,
-                      title: "License Expiry Date",
-                      placeholder: "YYYY-MM-DD",
+                      title: "Vehical number",
+                      placeholder: "Enter your vehical number",
                       keyboardType: TextInputType.text,
                       obscureText: false,
                     ),
@@ -246,7 +246,7 @@ class _SignUpViewState extends State<SignUpView> {
                         vehicleType: widget.role == 'driver'
                             ? selectedVehicleType
                             : null,
-                        licenseExpiryDate: widget.role == 'driver'
+                        vehicalnumber: widget.role == 'driver'
                             ? txtLicenseExpiry.text
                             : null,
                       );

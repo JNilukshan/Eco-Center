@@ -48,7 +48,11 @@ class _MainTabViewState extends State<MainTabView>
       body: TabBarView(
         controller: controller,
         children: [
-          HomeView(updateCart: updateCart),
+          HomeView(
+            updateCart: updateCart,
+            userId: widget.userId,
+            role: widget.role,
+          ),
           MyCartView(
             cartItems: cartItems,
             userId: widget.userId,

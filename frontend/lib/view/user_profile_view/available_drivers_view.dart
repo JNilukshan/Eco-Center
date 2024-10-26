@@ -99,6 +99,13 @@ class _AvailableDriversViewState extends State<AvailableDriversView> {
                                     color: TColor.secondaryText,
                                   ),
                                 ),
+                                Text(
+                                  'Vehical Type: ${driver['vehicaltype']}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: TColor.secondaryText,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
