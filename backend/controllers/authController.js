@@ -3,7 +3,7 @@ const Wholeseller = require('../models/wholesellerModel');
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 
-
+//dddddddd
 //register wholesellers and truckdrivers
 
 exports.createUser = async (req, res) => {
