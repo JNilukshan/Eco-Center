@@ -1,15 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:center/view/user_profile_view/available_drivers_view.dart';
+import 'package:center/view/user_profile_view/track_order_view.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:center/view/user_profile_view/edit_profile_view.dart';
-import 'package:center/view/user_profile_view/track_order_view.dart';
 import 'package:center/view/user_profile_view/notifications_view.dart';
+import 'package:center/view/main_tabview/main_tabview.dart';
+import 'package:center/view/main_tabview/dtru_main_tab.dart';
 import 'package:center/view/login/loginView.dart';
 import 'package:center/common/color_extrnsion.dart';
-import 'package:flutter/foundation.dart';
 
 class UserProfileView extends StatefulWidget {
   final String userId;
@@ -33,8 +36,6 @@ class _UserProfileViewState extends State<UserProfileView> {
     super.initState();
     fetchUserProfile();
   }
-
-///////////////////////////////////////////////////////////////////////////////////////
 
   Future<void> fetchUserProfile() async {
     setState(() => isLoading = true);
@@ -64,13 +65,10 @@ class _UserProfileViewState extends State<UserProfileView> {
 
   ImageProvider<Object> _getProfileImage() {
     if (_profileImage != null) {
-      // If a new image has been picked, show it
       return FileImage(_profileImage!);
     } else if (photoUrl != null && photoUrl!.isNotEmpty) {
-      // If a photo URL is available, load it from the network
       return NetworkImage(photoUrl!);
     } else {
-      // Otherwise, show a placeholder image
       return const AssetImage('assets/img/default_avatar.png');
     }
   }
@@ -81,8 +79,6 @@ class _UserProfileViewState extends State<UserProfileView> {
       SnackBar(content: Text(message)),
     );
   }
-
-/////////////////////////////////////////////////////////////////////////
 
   Future<void> _pickImageAndUpload(String userId) async {
     try {
@@ -98,19 +94,14 @@ class _UserProfileViewState extends State<UserProfileView> {
 
       setState(() => _profileImage = File(pickedFile.path));
 
-      // Different upload approach for web vs mobile
       if (kIsWeb) {
-        // Web-specific file upload logic
         showSnackBar("Photo upload is currently not supported on the web.");
-        // Implement a separate API endpoint that accepts base64 or other forms
       } else {
-        // Mobile upload using MultipartRequest
         var request = http.MultipartRequest(
           'PUT',
           Uri.parse('http://localhost:5000/api/auth/profile/photo/$userId'),
         );
 
-        // Attach file
         request.files.add(
           await http.MultipartFile.fromPath(
             'photo',
@@ -118,13 +109,10 @@ class _UserProfileViewState extends State<UserProfileView> {
           ),
         );
 
-        // Send request
         var response = await request.send();
-        var responseData = await response.stream.bytesToString();
-
         if (response.statusCode == 200) {
           showSnackBar('Profile photo updated successfully');
-          await fetchUserProfile(); // Refresh profile to get new photo URL
+          await fetchUserProfile();
         } else {
           showSnackBar('Failed to upload photo: ${response.statusCode}');
         }
@@ -133,8 +121,6 @@ class _UserProfileViewState extends State<UserProfileView> {
       showSnackBar('Error uploading photo: $e');
     }
   }
-
-////////////////////////////////////////////////////////////////////////////////////////
 
   Future<void> deleteAccount() async {
     try {
@@ -157,7 +143,9 @@ class _UserProfileViewState extends State<UserProfileView> {
         showSnackBar('Account deleted successfully');
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (context) => const LoginView(userId: ''),
+            builder: (context) => LoginView(
+              userId: widget.userId,
+            ),
           ),
           (Route<dynamic> route) => false,
         );
@@ -177,7 +165,29 @@ class _UserProfileViewState extends State<UserProfileView> {
         backgroundColor: TColor.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (widget.role == 'wholeseller') {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MainTabView(
+                    userId: widget.userId,
+                    role: widget.role,
+                  ),
+                ),
+              );
+            } else if (widget.role == 'driver') {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DTruMainTabView(
+                    userId: widget.userId,
+                    role: widget.role,
+                  ),
+                ),
+              );
+            }
+          },
         ),
       ),
       body: isLoading
@@ -276,21 +286,39 @@ class _UserProfileViewState extends State<UserProfileView> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const NotificationsView(),
+                                builder: (context) => NotificationsView(
+                                  userId: widget.userId,
+                                  role: widget.role,
+                                ),
                               ),
                             );
                           },
                         ),
                         ProfileOption(
                           icon: Icons.local_shipping,
-                          title: "Track Order",
+                          title: widget.role == 'wholeseller'
+                              ? "Available Drivers"
+                              : "Track Order",
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const TrackOrderView(),
-                              ),
-                            );
+                            if (widget.role == 'wholeseller') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const AvailableDriversView(),
+                                ),
+                              );
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TrackOrderView(
+                                    userId: widget.userId,
+                                    role: widget.role,
+                                  ),
+                                ),
+                              );
+                            }
                           },
                         ),
                         ProfileOption(

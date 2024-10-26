@@ -49,9 +49,15 @@ class _MainTabViewState extends State<MainTabView>
         controller: controller,
         children: [
           HomeView(updateCart: updateCart),
-          MyCartView(cartItems: cartItems),
-          UserProfileView(userId: widget.userId,role: 'wholeseller', 
-          ), 
+          MyCartView(
+            cartItems: cartItems,
+            userId: widget.userId,
+            role: 'wholeseller',
+          ),
+          UserProfileView(
+            userId: widget.userId,
+            role: 'wholeseller',
+          ),
         ],
       ),
       bottomNavigationBar: Container(

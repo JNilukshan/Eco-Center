@@ -3,7 +3,14 @@ import 'package:center/view/home/TrackOrderLocationView.dart';
 import 'package:flutter/material.dart';
 
 class TrackOrderView extends StatelessWidget {
-  const TrackOrderView({super.key});
+  final String userId;
+  final String role;
+
+  const TrackOrderView({
+    super.key,
+    required this.userId,
+    required this.role,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,11 +30,14 @@ class TrackOrderView extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // Navigating to OrderStatusView page
+                // Navigating to TrackOrderLocationView page
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const TrackOrderLocationView(),
+                    builder: (context) => TrackOrderLocationView(
+                      userId: userId,
+                      role: role,
+                    ),
                   ),
                 );
               },
@@ -42,6 +52,3 @@ class TrackOrderView extends StatelessWidget {
     );
   }
 }
-
-// This is the placeholder view for the next screen (Order Status)
-

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'notification_details_view.dart'; // Import the notification details view
 
 class NotificationsView extends StatefulWidget {
-  const NotificationsView({super.key});
+  const NotificationsView({super.key, required String userId, required String role});
 
   @override
   State<NotificationsView> createState() => _NotificationsViewState();

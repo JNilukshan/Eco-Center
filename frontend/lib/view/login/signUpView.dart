@@ -21,39 +21,50 @@ class _SignUpViewState extends State<SignUpView> {
   TextEditingController txtEmail = TextEditingController();
   TextEditingController txtPassword = TextEditingController();
   TextEditingController txtAddress = TextEditingController();
+  TextEditingController txtPhone =
+      TextEditingController(); // New phone number field
 
   // Specific to truck drivers
   TextEditingController txtLicenseExpiry = TextEditingController();
 
-  // Vehicle type dropdown related variables
-  String? selectedVehicleType; // To store the selected vehicle type
+  String? selectedVehicleType;
   final List<String> vehicleTypes = [
     'Car',
     'Truck',
     'Van',
     'Motorcycle',
     'Bus'
-  ]; // List of vehicle types
-
+  ];
   bool isShow = false;
 
   Future<void> signupUser(
-      String name, String email, String password, String address,
+      String name, String email, String password, String address, String phone,
       {String? vehicleType, String? licenseExpiryDate}) async {
+    // Check if phone number is exactly 10 digits
+    if (phone.length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content:
+                Text('Phone number is incorrect. It should be 10 digits.')),
+      );
+      return;
+    }
+
     try {
       final response = await http.post(
         Uri.parse('http://localhost:5000/api/auth/create'),
         headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
+          'Content-Type': 'application/json; charset=UTF-8'
         },
         body: jsonEncode(<String, String>{
           'name': name,
           'email': email,
           'password': password,
           'address': address,
+          'phone': phone, // Include phone number
           'vehicleType': vehicleType ?? '',
           'licenseExpiryDate': licenseExpiryDate ?? '',
-          'role': widget.role, // Send the role ('wholeseller' or 'driver')
+          'role': widget.role,
         }),
       );
 
@@ -65,14 +76,16 @@ class _SignUpViewState extends State<SignUpView> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => MainTabView(userId: userId, role: 'wholeseller',),
+              builder: (context) =>
+                  MainTabView(userId: userId, role: 'wholeseller'),
             ),
           );
         } else if (widget.role == 'driver') {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => DTruMainTabView(userId: userId, role: 'driver',),
+              builder: (context) =>
+                  DTruMainTabView(userId: userId, role: 'driver'),
             ),
           );
         }
@@ -99,11 +112,7 @@ class _SignUpViewState extends State<SignUpView> {
               onPressed: () {
                 Navigator.pop(context);
               },
-              icon: Image.asset(
-                "assets/img/back.png",
-                width: 20,
-                height: 20,
-              ),
+              icon: Image.asset("assets/img/back.png", width: 20, height: 20),
             ),
           ),
           backgroundColor: Colors.transparent,
@@ -163,8 +172,14 @@ class _SignUpViewState extends State<SignUpView> {
                     obscureText: false,
                   ),
                   SizedBox(height: media.width * 0.04),
-
-                  // Fields specific to truck drivers
+                  LineTextfield(
+                    controller: txtPhone, // New phone field
+                    title: "Phone Number",
+                    placeholder: "Enter your 10-digit phone number",
+                    keyboardType: TextInputType.phone,
+                    obscureText: false,
+                  ),
+                  SizedBox(height: media.width * 0.04),
                   if (widget.role == 'driver') ...[
                     DropdownButtonFormField<String>(
                       decoration: InputDecoration(
@@ -172,8 +187,7 @@ class _SignUpViewState extends State<SignUpView> {
                         contentPadding: const EdgeInsets.symmetric(
                             vertical: 16, horizontal: 12),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(5),
-                        ),
+                            borderRadius: BorderRadius.circular(5)),
                       ),
                       value: selectedVehicleType,
                       hint: const Text('Select your vehicle type'),
@@ -201,7 +215,6 @@ class _SignUpViewState extends State<SignUpView> {
                     ),
                     SizedBox(height: media.width * 0.04),
                   ],
-
                   LineTextfield(
                     controller: txtPassword,
                     title: "Password",
@@ -229,6 +242,7 @@ class _SignUpViewState extends State<SignUpView> {
                         txtEmail.text,
                         txtPassword.text,
                         txtAddress.text,
+                        txtPhone.text, // Pass phone number to signup function
                         vehicleType: widget.role == 'driver'
                             ? selectedVehicleType
                             : null,
@@ -237,37 +251,6 @@ class _SignUpViewState extends State<SignUpView> {
                             : null,
                       );
                     },
-                  ),
-                  SizedBox(height: media.width * 0.02),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: Row(
-                          children: [
-                            Text(
-                              "Already have an account?",
-                              style: TextStyle(
-                                color: TColor.primaryText,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              " Sign In",
-                              style: TextStyle(
-                                color: TColor.primary,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),

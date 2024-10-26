@@ -8,7 +8,7 @@ const fs = require('fs');
 //register wholesellers and truckdrivers
 
 exports.createUser = async (req, res) => {
-  const { name, email, password, address, vehicleType, licenseExpiryDate, role } = req.body;
+  const { name, email, password, address,phone, vehicleType, licenseExpiryDate, role } = req.body;
   
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -20,6 +20,7 @@ exports.createUser = async (req, res) => {
         role: 'driver',
         password: hashedPassword,
         address,
+        phone,
         vehicleType,
         licenseExpiryDate,
       });
@@ -33,6 +34,7 @@ exports.createUser = async (req, res) => {
         name,
         email,
         address,
+        phone,
         role: 'wholeseller',
         password: hashedPassword,
       });
@@ -400,5 +402,16 @@ exports.updateProfilePhoto = async (req, res) => {
       message: 'Error updating profile photo',
       error: error.message
     });
+  }
+};
+
+
+//fetch driver details
+exports.getAvailableDrivers = async (req, res) => {
+  try {
+    const drivers = await Driver.find({}, 'name vehicleType phone address photoUrl');
+    res.status(200).json(drivers);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching drivers', error });
   }
 };
