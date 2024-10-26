@@ -1,0 +1,38 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.example.center"
+    compileSdkVersion 33          // Explicitly specify compile SDK version
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
+    defaultConfig {
+        applicationId = "com.example.center"
+        minSdkVersion 21             // Explicitly set min SDK
+        targetSdkVersion 33          // Explicitly set target SDK
+        versionCode flutter.versionCode
+        versionName flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.debug
+            minifyEnabled false       // Recommended for release builds if you haven’t configured ProGuard/R8
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
