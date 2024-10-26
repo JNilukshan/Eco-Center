@@ -5,9 +5,9 @@ const { getCart, addToCart, updateCartItemQuantity, removeFromCart } = require('
 const router = express.Router();
 
 
-router.get('/', getCart); // GET /api/cart
-router.post('/add/:itemId', addToCart); // POST /api/cart/add/:itemId
-router.put('/update', updateCartItemQuantity); // PUT /api/cart/update
-router.delete('/remove/:itemId', removeFromCart); // DELETE /api/cart/remove/:itemId
+router.get('/cart', getCart); 
+router.post('/cart/:itemId', addToCart); 
+router.put('/cart/:itemId', updateCartItemQuantity); 
+router.delete('/cart/:itemId', removeFromCart); 
 
 module.exports = router;

@@ -60,26 +60,25 @@ class _HomeViewState extends State<HomeView> {
     });
   }
 
-  Future<void> addToCart(Map<String, dynamic> item) async {
-    try {
-      final response = await _vegetableService
-          .addToCart(item['itemId']); // Adjust to send item ID
-      setState(() {
-        cartItems = response[
-            'cart']; // Update local cart state with the server's response
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Item added to cart')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add to cart: $e')),
-      );
-    }
+  void addToCart(Map<String, dynamic> item) {
+    setState(() {
+      bool isFound = false;
+      for (var cartItem in cartItems) {
+        if (cartItem["name"] == item["name"]) {
+          cartItem["qty"] += 1;
+          isFound = true;
+          break;
+        }
+      }
+      if (!isFound) {
+        cartItems.add({...item, "qty": 1});
+      }
+      widget.updateCart(cartItems);
+    });
   }
 
   void navigateToCart() {
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => MyCartView(
@@ -110,7 +109,6 @@ class _HomeViewState extends State<HomeView> {
             : Column(
                 children: [
                   const SizedBox(height: 15),
-                  // Search Bar
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: TextField(

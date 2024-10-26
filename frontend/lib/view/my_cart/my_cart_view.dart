@@ -1,5 +1,5 @@
-import 'package:center/view/main_tabview/main_tabview.dart';
 import 'package:center/view/my_cart/payment_screen.dart';
+import 'package:center/view/main_tabview/main_tabview.dart';
 import 'package:flutter/material.dart';
 
 class MyCartView extends StatefulWidget {
@@ -44,11 +44,20 @@ class _MyCartViewState extends State<MyCartView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Cart'),
-        backgroundColor: const Color.fromARGB(255, 17, 48, 28),
+        backgroundColor: const Color.fromARGB(255, 9, 30, 16),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context); // Navigate back to HomeView
+            // Navigate back to HomeView or main view depending on the stack
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MainTabView(
+                  userId: widget.userId,
+                  role: widget.role,
+                ),
+              ),
+            );
           },
         ),
       ),
@@ -66,7 +75,7 @@ class _MyCartViewState extends State<MyCartView> {
                       return ListTile(
                         leading: item["icon"] != null
                             ? Image.asset(item["icon"], width: 50, height: 50)
-                            : Icon(Icons.image, size: 50),
+                            : const Icon(Icons.image, size: 50),
                         title: Text(item["name"] ?? "Unknown"),
                         subtitle: Text("Unit Price: Rs. ${item["unitprice"]}"),
                         trailing: Row(
@@ -78,7 +87,8 @@ class _MyCartViewState extends State<MyCartView> {
                                 updateItemQuantity(index, -1);
                               },
                             ),
-                            Text('${item["qty"]} kg'), // Display quantity with kg
+                            Text(
+                                '${item["qty"]} kg'), // Display quantity with kg
                             IconButton(
                               icon: const Icon(Icons.add),
                               onPressed: () {
