@@ -2,8 +2,9 @@ const Driver = require('../models/driverModel');
 const Wholeseller = require('../models/wholesellerModel');
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
+const path = require('path');
+const fs = require('fs');  
 
-//dddddddd
 //register wholesellers and truckdrivers
 
 exports.createUser = async (req, res) => {
@@ -160,7 +161,7 @@ exports.logout = async (req, res) => {
   }
 };
 
-// Update the delete account function
+// delete account 
 exports.deleteAccount = async (req, res) => {
   const { userId, role } = req.body;
 
@@ -274,20 +275,7 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-// Get user profile details (Driver or Wholeseller)
-exports.getWholesellerProfile = async (req, res) => {
-  const { userId } = req.params;
-  try {
-    const wholeseller = await Wholeseller.findById(userId);
-    if (!wholeseller) {
-      return res.status(404).json({ message: 'Wholeseller not found' });
-    }
-    res.json({ user: wholeseller });
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching profile', error: err.message });
-  }
-};
-
+//getDriverProfile and getWholesellerProfile 
 exports.getDriverProfile = async (req, res) => {
   const { userId } = req.params;
   try {
@@ -295,48 +283,122 @@ exports.getDriverProfile = async (req, res) => {
     if (!driver) {
       return res.status(404).json({ message: 'Driver not found' });
     }
-    res.json({ user: driver });
+    
+    const photoUrl = driver.photo 
+      ? `${process.env.BASE_URL}/uploads/profile-photos/${driver.photo}`
+      : null;
+
+    res.json({ 
+      user: {
+        ...driver.toObject(),
+        photoUrl
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: 'Error fetching profile', error: err.message });
   }
 };
 
+exports.getWholesellerProfile = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const wholeseller = await Wholeseller.findById(userId);
+    if (!wholeseller) {
+      return res.status(404).json({ message: 'Wholeseller not found' });
+    }
+
+    const photoUrl = wholeseller.photo 
+      ? `${process.env.BASE_URL}/uploads/profile-photos/${wholeseller.photo}`
+      : null;
+
+    res.json({ 
+      user: {
+        ...wholeseller.toObject(),
+        photoUrl
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching profile', error: err.message });
+  }
+};
+
+
 // Update profile photo for driver or wholeseller
 exports.updateProfilePhoto = async (req, res) => {
-  const { userId } = req.params; 
-  const { photo } = req.body; 
-
   try {
-    
+    if (!req.files || !req.files.photo) {
+      return res.status(400).json({ message: 'No photo uploaded' });
+    }
+
+    const { userId } = req.params;
+    const photoFile = req.files.photo;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedTypes.includes(photoFile.mimetype)) {
+      return res.status(400).json({ 
+        message: 'Invalid file type. Only JPG, JPEG and PNG allowed' 
+      });
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (photoFile.size > maxSize) {
+      return res.status(400).json({ 
+        message: 'File too large. Maximum size is 5MB' 
+      });
+    }
+
+    // Find user
     const driver = await Driver.findById(userId);
     const wholeseller = await Wholeseller.findById(userId);
+    const user = driver || wholeseller;
 
-    let user = driver || wholeseller;
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Update the user's photo field with the base64 string
-    user.photo = photo;
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(__dirname, '../uploads/profile-photos');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // Generate unique filename
+    const fileName = `${userId}-${Date.now()}${path.extname(photoFile.name)}`;
+    const filePath = path.join(uploadsDir, fileName);
+
+    // Delete old photo if it exists
+    if (user.photo) {
+      const oldPhotoPath = path.join(uploadsDir, user.photo);
+      if (fs.existsSync(oldPhotoPath)) {
+        fs.unlinkSync(oldPhotoPath);
+      }
+    }
+
+    // Save new photo
+    await photoFile.mv(filePath);
+
+    // Update user's photo field with filename
+    user.photo = fileName;
     await user.save();
 
-    // Send a success response with the updated user data
+    // Send success response with file path
     res.status(200).json({
-    message: 'Profile photo updated successfully',
-    user: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      photo: user.photo,  
-    }
-  });
+      message: 'Profile photo updated successfully',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        photo: fileName
+      }
+    });
 
   } catch (error) {
-    console.error(error);
+    console.error('Error updating profile photo:', error);
     res.status(500).json({
       message: 'Error updating profile photo',
-      error: error.message,
+      error: error.message
     });
   }
 };
-
