@@ -10,8 +10,8 @@ const {
   getWholesellerProfile,
   getDriverProfile,
   updateProfilePhoto,
-  logout,
-  deleteAccount
+  deleteAccount,
+  getAvailableDrivers
 } = require('../controllers/authController');
 
 const router = express.Router();
@@ -29,15 +29,16 @@ router.put('/update/driver/:userId', updateDriver);
 router.put('/update/wholeseller/:userId', updateWholeseller);
 
 // Define routes for profile retrieval
-router.get('/profile/wholeseller/:userId', getWholesellerProfile);  // Corrected to router.get
-router.get('/profile/driver/:userId', getDriverProfile);            // Corrected to router.get
+router.get('/profile/wholeseller/:userId', getWholesellerProfile);  
+router.get('/profile/driver/:userId', getDriverProfile);            
 
 // Define route for updating profile photo
 router.put('/profile/photo/:userId', updateProfilePhoto);
 
-// Define route for logout
-router.post('/logout', logout);
-
+//delete account
 router.delete('/delete-account', deleteAccount);
+
+//get driver details
+router.get('/drivers',getAvailableDrivers);
 
 module.exports = router;

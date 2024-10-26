@@ -1,9 +1,18 @@
+import 'package:center/view/main_tabview/main_tabview.dart';
 import 'package:center/view/my_cart/payment_screen.dart';
 import 'package:flutter/material.dart';
 
 class MyCartView extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
-  const MyCartView({super.key, required this.cartItems});
+  final String userId;
+  final String role;
+
+  const MyCartView({
+    super.key,
+    required this.cartItems,
+    required this.userId,
+    required this.role,
+  });
 
   @override
   State<MyCartView> createState() => _MyCartViewState();
@@ -14,7 +23,8 @@ class _MyCartViewState extends State<MyCartView> {
   double getTotalPrice() {
     double total = 0.0;
     for (var item in widget.cartItems) {
-      total += double.parse(item["price"].toString().replaceAll("Rs.", "")) * item["qty"];
+      total += double.parse(item["price"].toString().replaceAll("Rs.", "")) *
+          item["qty"];
     }
     return total;
   }
@@ -22,7 +32,8 @@ class _MyCartViewState extends State<MyCartView> {
   // Function to increase or decrease item quantity
   void updateItemQuantity(int index, int change) {
     setState(() {
-      widget.cartItems[index]["qty"] = (widget.cartItems[index]["qty"] + change).clamp(0, 100);
+      widget.cartItems[index]["qty"] =
+          (widget.cartItems[index]["qty"] + change).clamp(0, 100);
       if (widget.cartItems[index]["qty"] == 0) {
         widget.cartItems.removeAt(index);
       }
@@ -34,7 +45,21 @@ class _MyCartViewState extends State<MyCartView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Cart'),
-        backgroundColor: const Color.fromARGB(255, 17, 48, 28), // Change AppBar background color
+        backgroundColor: const Color.fromARGB(255, 17, 48, 28),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MainTabView(
+                  userId: widget.userId,
+                  role: widget.role,
+                ),
+              ),
+            );
+          },
+        ),
       ),
       body: widget.cartItems.isEmpty
           ? const Center(
@@ -48,7 +73,8 @@ class _MyCartViewState extends State<MyCartView> {
                     itemBuilder: (context, index) {
                       var item = widget.cartItems[index];
                       return ListTile(
-                        leading: Image.asset(item["icon"], width: 50, height: 50),
+                        leading:
+                            Image.asset(item["icon"], width: 50, height: 50),
                         title: Text(item["name"]),
                         subtitle: Text("Rs. ${item["price"]}"),
                         trailing: Row(
@@ -77,7 +103,8 @@ class _MyCartViewState extends State<MyCartView> {
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
                     'Total: Rs. ${getTotalPrice().toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -91,23 +118,24 @@ class _MyCartViewState extends State<MyCartView> {
             children: [
               Text(
                 'Total: Rs. ${getTotalPrice().toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
               ElevatedButton(
                 onPressed: () {
-                  // Pass the total price to PaymentMethodScreen
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => PaymentMethodScreen(
-                        totalPrice: getTotalPrice(), // Pass the total price
+                        totalPrice: getTotalPrice(),
                       ),
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 17, 48, 28), // Change button color here
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  backgroundColor: const Color.fromARGB(255, 17, 48, 28),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),

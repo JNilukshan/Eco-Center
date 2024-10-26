@@ -1,10 +1,13 @@
-import 'package:center/common/color_extrnsion.dart';
 import 'package:center/view/home/dtru_noti_view.dart';
 import 'package:flutter/material.dart';
- // Import the notification details view
+import 'package:center/common/color_extrnsion.dart';
 
 class DTruNotificationHome extends StatefulWidget {
-  const DTruNotificationHome({super.key});
+  final String userId;
+  final String role;
+
+  const DTruNotificationHome(
+      {super.key, required this.userId, required this.role});
 
   @override
   State<DTruNotificationHome> createState() => _DTruNotificationHomeState();
@@ -24,7 +27,6 @@ class _DTruNotificationHomeState extends State<DTruNotificationHome> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-      
             const SizedBox(height: 20),
 
             // Divider to separate the notification examples
@@ -37,16 +39,20 @@ class _DTruNotificationHomeState extends State<DTruNotificationHome> {
                 children: [
                   ExampleNotification(
                     title: "Ride Arrived",
-                    description: "Your ride is waiting at your location. Please meet the driver.",
+                    description:
+                        "Your ride is waiting at your location. Please meet the driver.",
                     icon: Icons.directions_car,
                     notificationTime: "Just Now",
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const DTruNotificationViewDetailsView(
+                          builder: (context) => DTruNotificationViewDetailsView(
                             title: "Ride Arrived",
-                            description: "Your ride has arrived and is waiting at your location.",
+                            description:
+                                "Your ride has arrived and is waiting at your location.",
+                            userId: widget.userId,
+                            role: widget.role,
                           ),
                         ),
                       );
@@ -54,16 +60,20 @@ class _DTruNotificationHomeState extends State<DTruNotificationHome> {
                   ),
                   ExampleNotification(
                     title: "Promo: 10% off your next ride!",
-                    description: "Use code PICK10 to get 10% off your next ride. Expires in 2 days.",
+                    description:
+                        "Use code PICK10 to get 10% off your next ride. Expires in 2 days.",
                     icon: Icons.local_offer,
                     notificationTime: "1 hour ago",
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const DTruNotificationViewDetailsView(
+                          builder: (context) => DTruNotificationViewDetailsView(
                             title: "Promo Code",
-                            description: "Use code PICK10 to get 10% off your next ride.",
+                            description:
+                                "Use code PICK10 to get 10% off your next ride.",
+                            userId: widget.userId,
+                            role: widget.role,
                           ),
                         ),
                       );
@@ -71,16 +81,20 @@ class _DTruNotificationHomeState extends State<DTruNotificationHome> {
                   ),
                   ExampleNotification(
                     title: "Ride Completed",
-                    description: "Your ride to Colombo is complete. Rate your driver.",
+                    description:
+                        "Your ride to Colombo is complete. Rate your driver.",
                     icon: Icons.star_rate,
                     notificationTime: "2 hours ago",
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const DTruNotificationViewDetailsView(
+                          builder: (context) => DTruNotificationViewDetailsView(
                             title: "Ride Completed",
-                            description: "Your ride to Colombo is complete. Please rate your driver.",
+                            description:
+                                "Your ride to Colombo is complete. Please rate your driver.",
+                            userId: widget.userId,
+                            role: widget.role,
                           ),
                         ),
                       );
@@ -88,16 +102,20 @@ class _DTruNotificationHomeState extends State<DTruNotificationHome> {
                   ),
                   ExampleNotification(
                     title: "Fare Update",
-                    description: "Your fare for the recent trip has been updated. Check the details.",
+                    description:
+                        "Your fare for the recent trip has been updated. Check the details.",
                     icon: Icons.attach_money,
                     notificationTime: "Yesterday",
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const DTruNotificationViewDetailsView(
+                          builder: (context) => DTruNotificationViewDetailsView(
                             title: "Fare Update",
-                            description: "Your fare for the recent trip has been updated.",
+                            description:
+                                "Your fare for the recent trip has been updated.",
+                            userId: widget.userId,
+                            role: widget.role,
                           ),
                         ),
                       );

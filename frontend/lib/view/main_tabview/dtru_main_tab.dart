@@ -6,8 +6,13 @@ import 'package:center/view/user_profile_view/user_profile.dart';
 
 class DTruMainTabView extends StatefulWidget {
   final String userId;
+  final String role; // Added role as a required parameter
 
-  const DTruMainTabView({super.key, required this.userId, required String role});
+  const DTruMainTabView({
+    super.key,
+    required this.userId,
+    required this.role,
+  });
 
   @override
   State<DTruMainTabView> createState() => _DTruMainTabViewState();
@@ -41,9 +46,12 @@ class _DTruMainTabViewState extends State<DTruMainTabView>
       body: TabBarView(
         controller: controller,
         children: [
-          const DTruNotificationHome(),
-          const TrackOrderLocationView(),
-          UserProfileView(userId: widget.userId, role: 'driver' ), // Pass role as driver
+          DTruNotificationHome(userId: widget.userId, role: widget.role),
+          TrackOrderLocationView(userId: widget.userId, role: widget.role),
+          UserProfileView(
+              userId: widget.userId,
+              role: widget
+                  .role), // Pass role as driver or wholeseller as required
         ],
       ),
       bottomNavigationBar: Container(

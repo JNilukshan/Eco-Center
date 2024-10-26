@@ -6,12 +6,16 @@ class ProductCell extends StatelessWidget {
   final Map pObj;
   final VoidCallback onPressed;
   final VoidCallback onCart;
+  final String userId;
+  final String role;
 
   const ProductCell({
     super.key,
     required this.pObj,
     required this.onPressed,
     required this.onCart,
+    required this.userId,
+    required this.role,
   });
 
   @override
@@ -75,21 +79,24 @@ class ProductCell extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  pObj["price"],
+                  "Rs. ${pObj["price"]}",
                   style: TextStyle(
                     color: TColor.primaryText,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                // Add Navigator to InkWell here
                 InkWell(
                   onTap: () {
-                    // Example navigation to Cart screen
+                    // Navigate to MyCartView, passing necessary parameters
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const MyCartView(cartItems: [],), // Assuming CartPage exists
+                        builder: (context) => MyCartView(
+                          cartItems: const [], // You can update this with the actual cart items if needed
+                          userId: userId,
+                          role: role,
+                        ),
                       ),
                     );
                   },

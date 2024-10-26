@@ -1,14 +1,18 @@
 import 'dart:convert';
-import 'package:center/view/user_profile_view/notifications_view.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:center/view/user_profile_view/available_drivers_view.dart';
+import 'package:center/view/user_profile_view/track_order_view.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:center/view/user_profile_view/edit_profile_view.dart';
-import 'package:center/view/user_profile_view/track_order_view.dart';
-import 'package:center/common/color_extrnsion.dart';
+import 'package:center/view/user_profile_view/notifications_view.dart';
+import 'package:center/view/main_tabview/main_tabview.dart';
+import 'package:center/view/main_tabview/dtru_main_tab.dart';
 import 'package:center/view/login/loginView.dart';
+import 'package:center/common/color_extrnsion.dart';
 
 class UserProfileView extends StatefulWidget {
   final String userId;
@@ -24,7 +28,7 @@ class _UserProfileViewState extends State<UserProfileView> {
   File? _profileImage;
   String? name;
   String? email;
-  String? base64Photo;
+  String? photoUrl;
   bool isLoading = false;
 
   @override
@@ -47,7 +51,7 @@ class _UserProfileViewState extends State<UserProfileView> {
         setState(() {
           name = data['user']['name'] ?? 'Name not available';
           email = data['user']['email'] ?? 'Email not available';
-          base64Photo = data['user']['photo'];
+          photoUrl = data['user']['photoUrl'];
         });
       } else {
         showSnackBar('Failed to load profile: ${response.statusCode}');
@@ -55,9 +59,17 @@ class _UserProfileViewState extends State<UserProfileView> {
     } catch (e) {
       showSnackBar('Error: $e');
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
+    }
+  }
+
+  ImageProvider<Object> _getProfileImage() {
+    if (_profileImage != null) {
+      return FileImage(_profileImage!);
+    } else if (photoUrl != null && photoUrl!.isNotEmpty) {
+      return NetworkImage(photoUrl!);
+    } else {
+      return const AssetImage('assets/img/default_avatar.png');
     }
   }
 
@@ -69,69 +81,44 @@ class _UserProfileViewState extends State<UserProfileView> {
   }
 
   Future<void> _pickImageAndUpload(String userId) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxHeight: 800,
+        maxWidth: 800,
+        imageQuality: 85,
+      );
 
-    if (pickedFile != null) {
-      File imageFile = File(pickedFile.path);
-      List<int> imageBytes = await imageFile.readAsBytes();
-      String base64Image = base64Encode(imageBytes);
+      if (pickedFile == null) return;
 
-      try {
-        var response = await http.put(
+      setState(() => _profileImage = File(pickedFile.path));
+
+      if (kIsWeb) {
+        showSnackBar("Photo upload is currently not supported on the web.");
+      } else {
+        var request = http.MultipartRequest(
+          'PUT',
           Uri.parse('http://localhost:5000/api/auth/profile/photo/$userId'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'photo': base64Image}),
         );
 
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'photo',
+            pickedFile.path,
+          ),
+        );
+
+        var response = await request.send();
         if (response.statusCode == 200) {
           showSnackBar('Profile photo updated successfully');
           await fetchUserProfile();
         } else {
           showSnackBar('Failed to upload photo: ${response.statusCode}');
         }
-      } catch (e) {
-        showSnackBar('Error uploading photo: $e');
-      }
-    }
-  }
-
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    try {
-      // Attempt server logout
-      final response = await http.post(
-        Uri.parse('http://localhost:5000/api/auth/logout'),
-      );
-
-      if (response.statusCode == 200) {
-        // Clear all stored user data
-        await prefs.clear();
-        
-        if (!mounted) return;
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (context) => const LoginView(userId: ''),
-          ),
-          (Route<dynamic> route) => false,
-        );
-      } else {
-        if (!mounted) return;
-        showSnackBar('Server logout failed. Please try again.');
       }
     } catch (e) {
-      // Even if server logout fails, clear local data and redirect to login
-      await prefs.clear();
-      
-      if (!mounted) return;
-      showSnackBar('Error during logout: $e');
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => const LoginView(userId: ''),
-        ),
-        (Route<dynamic> route) => false,
-      );
+      showSnackBar('Error uploading photo: $e');
     }
   }
 
@@ -156,7 +143,9 @@ class _UserProfileViewState extends State<UserProfileView> {
         showSnackBar('Account deleted successfully');
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (context) => const LoginView(userId: ''),
+            builder: (context) => LoginView(
+              userId: widget.userId,
+            ),
           ),
           (Route<dynamic> route) => false,
         );
@@ -176,7 +165,29 @@ class _UserProfileViewState extends State<UserProfileView> {
         backgroundColor: TColor.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (widget.role == 'wholeseller') {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MainTabView(
+                    userId: widget.userId,
+                    role: widget.role,
+                  ),
+                ),
+              );
+            } else if (widget.role == 'driver') {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DTruMainTabView(
+                    userId: widget.userId,
+                    role: widget.role,
+                  ),
+                ),
+              );
+            }
+          },
         ),
       ),
       body: isLoading
@@ -193,12 +204,7 @@ class _UserProfileViewState extends State<UserProfileView> {
                           children: [
                             CircleAvatar(
                               radius: 50,
-                              backgroundImage: _profileImage != null
-                                  ? FileImage(_profileImage!)
-                                  : (base64Photo != null && base64Photo!.isNotEmpty
-                                      ? MemoryImage(base64Decode(base64Photo!))
-                                      : const AssetImage('assets/img/pro-2.jpeg'))
-                                  as ImageProvider,
+                              backgroundImage: _getProfileImage(),
                             ),
                             Positioned(
                               right: 0,
@@ -280,51 +286,39 @@ class _UserProfileViewState extends State<UserProfileView> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const NotificationsView(),
+                                builder: (context) => NotificationsView(
+                                  userId: widget.userId,
+                                  role: widget.role,
+                                ),
                               ),
                             );
                           },
                         ),
                         ProfileOption(
                           icon: Icons.local_shipping,
-                          title: "Track Order",
+                          title: widget.role == 'wholeseller'
+                              ? "Available Drivers"
+                              : "Track Order",
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const TrackOrderView(),
-                              ),
-                            );
-                          },
-                        ),
-                        ProfileOption(
-                          icon: Icons.logout,
-                          title: "Logout",
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text("Logout"),
-                                content: const Text(
-                                    "Are you sure you want to log out?"),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text("Cancel"),
+                            if (widget.role == 'wholeseller') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const AvailableDriversView(),
+                                ),
+                              );
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TrackOrderView(
+                                    userId: widget.userId,
+                                    role: widget.role,
                                   ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      logout();
-                                    },
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Colors.red,
-                                    ),
-                                    child: const Text("Logout"),
-                                  ),
-                                ],
-                              ),
-                            );
+                                ),
+                              );
+                            }
                           },
                         ),
                         ProfileOption(
@@ -384,7 +378,8 @@ class ProfileOption extends StatelessWidget {
     return ListTile(
       leading: Icon(icon, color: TColor.primary),
       title: Text(title),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      trailing:
+          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
       onTap: onTap,
     );
   }

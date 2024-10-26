@@ -33,3 +33,4 @@ flutter:
   assets:
     - assets/img/
     - assets/img/home.png
+    - assets/img/default_avatar.png
