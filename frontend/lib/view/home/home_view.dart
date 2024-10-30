@@ -1,6 +1,9 @@
 import 'package:center/view/home/vegetableservice.dart';
+import 'package:center/view/home/cartservice.dart'; // Import CartService here
 import 'package:center/view/my_cart/my_cart_view.dart';
 import 'package:flutter/material.dart';
+import 'package:center/common/color_extrnsion.dart';
+
 
 class HomeView extends StatefulWidget {
   final Function(List<Map<String, dynamic>> updatedCart) updateCart;
@@ -24,7 +27,9 @@ class _HomeViewState extends State<HomeView> {
   List<Map<String, dynamic>> vegetables = [];
   List<Map<String, dynamic>> filteredItems = [];
   bool isLoading = true;
+
   final VegetableService _vegetableService = VegetableService();
+  final CartService _cartService = CartService(); // Instantiate CartService
 
   @override
   void initState() {
@@ -75,6 +80,13 @@ class _HomeViewState extends State<HomeView> {
       }
       widget.updateCart(cartItems);
     });
+
+    // Save the cart to the database using CartService
+    _cartService.saveCart(widget.userId, cartItems).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save cart: $error')),
+      );
+    });
   }
 
   void navigateToCart() {
@@ -95,13 +107,8 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Available Vegetables'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.shopping_cart),
-            onPressed: navigateToCart,
-          ),
-        ],
+        title: const Text('Available Vegetables'),
+        backgroundColor: TColor.primary,
       ),
       body: SafeArea(
         child: isLoading
@@ -149,10 +156,12 @@ class _HomeViewState extends State<HomeView> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Image.asset(
-                                    pObj["icon"] ??
-                                        'assets/img/placeholder.png',
+                                    pObj["icon"] ?? '/assets/img/placeholder.png',
                                     width: 100,
                                     height: 100,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(Icons.image, size: 100);
+                                    },
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
