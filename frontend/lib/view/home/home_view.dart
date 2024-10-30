@@ -4,7 +4,6 @@ import 'package:center/view/my_cart/my_cart_view.dart';
 import 'package:flutter/material.dart';
 import 'package:center/common/color_extrnsion.dart';
 
-
 class HomeView extends StatefulWidget {
   final Function(List<Map<String, dynamic>> updatedCart) updateCart;
   final String userId;
@@ -65,28 +64,37 @@ class _HomeViewState extends State<HomeView> {
     });
   }
 
-  void addToCart(Map<String, dynamic> item) {
-    setState(() {
+  Future<void> addToCart(String userId, Map<String, dynamic> newItem) async {
+    try {
+      // Step 1: Fetch current cart items from the backend
+      List<Map<String, dynamic>> currentCartItems =
+          await _cartService.fetchCart(userId);
+
+      // Step 2: Check if the item already exists in the cart and update quantity if it does
       bool isFound = false;
-      for (var cartItem in cartItems) {
-        if (cartItem["name"] == item["name"]) {
-          cartItem["qty"] += 1;
+      for (var cartItem in currentCartItems) {
+        if (cartItem["name"] == newItem["name"]) {
+          // Only increment if qty is not null, else set it to 1
+          cartItem["qty"] = (cartItem["qty"] ?? 0) + 1;
           isFound = true;
           break;
         }
       }
-      if (!isFound) {
-        cartItems.add({...item, "qty": 1});
-      }
-      widget.updateCart(cartItems);
-    });
 
-    // Save the cart to the database using CartService
-    _cartService.saveCart(widget.userId, cartItems).catchError((error) {
+      // Step 3: If item is not found, add it with quantity initialized to 1
+      if (!isFound) {
+        currentCartItems.add({...newItem, "qty": 1});
+      }
+
+      // Step 4: Save the updated cart back to the database
+      await _cartService.saveCart(userId, currentCartItems);
+    } catch (error) {
+      print('Error in addToCart: $error');
+      // Optionally, remove the SnackBar if you don't want to show an error message on duplicate add
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save cart: $error')),
+        SnackBar(content: Text('Failed to add item to cart: $error')),
       );
-    });
+    }
   }
 
   void navigateToCart() {
@@ -156,7 +164,8 @@ class _HomeViewState extends State<HomeView> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Image.asset(
-                                    pObj["icon"] ?? '/assets/img/placeholder.png',
+                                    pObj["icon"] ??
+                                        '/assets/img/placeholder.png',
                                     width: 100,
                                     height: 100,
                                     errorBuilder: (context, error, stackTrace) {
@@ -186,7 +195,8 @@ class _HomeViewState extends State<HomeView> {
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: ElevatedButton(
-                                      onPressed: () => addToCart(pObj),
+                                      onPressed: () =>
+                                          addToCart(widget.userId, pObj),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: const Color.fromARGB(
                                             255, 17, 48, 28),

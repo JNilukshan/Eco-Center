@@ -64,4 +64,24 @@ class CartService {
       throw Exception('Error fetching cart: $e');
     }
   }
+
+  // Update cart item quantity
+  Future<void> updateCartItemQuantity(
+      String userId, String itemId, int quantity) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/cart/$itemId'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'userId': userId, 'quantity': quantity}),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Failed to update item quantity. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in updateCartItemQuantity: $e');
+      throw Exception('Error updating item quantity: $e');
+    }
+  }
 }

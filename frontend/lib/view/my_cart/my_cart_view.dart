@@ -53,6 +53,7 @@ class _MyCartViewState extends State<MyCartView> {
     }
   }
 
+
   // Calculate total price
   double getTotalPrice() {
     double total = 0.0;

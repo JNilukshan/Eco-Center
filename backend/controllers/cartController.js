@@ -95,10 +95,8 @@ exports.saveCart = async (req, res) => {
       unitprice: item.unitprice,
     }));
 
-    // Save the updated cart to the database
     await user.save();
 
-    // Respond with success message and updated cart
     res.status(200).json({ message: 'Cart saved successfully', cart: user.vegetablesCart });
   } catch (error) {
     console.error('Error saving cart:', error);
@@ -132,14 +130,12 @@ exports.removeFromCart = async (req, res) => {
       return res.status(400).json({ error: 'Invalid userId or itemId' });
     }
 
-    // Find the user
     const wholeseller = await Wholeseller.findById(userId);
     if (!wholeseller) {
       console.log("Wholeseller not found with userId:", userId);
       return res.status(404).json({ error: 'Wholeseller not found' });
     }
 
-    // Remove the item from the cart
     const initialCartLength = wholeseller.vegetablesCart.length;
     wholeseller.vegetablesCart = wholeseller.vegetablesCart.filter((item) => item.itemId.toString() !== itemId);
     
