@@ -20,6 +20,9 @@ class _EditProfileViewState extends State<EditProfileView> {
   TextEditingController passwordController = TextEditingController();
   TextEditingController confirmPasswordController = TextEditingController();
 
+  bool isShowPassword = false;
+  bool isShowConfirmPassword = false;
+
   @override
   void initState() {
     super.initState();
@@ -155,9 +158,19 @@ class _EditProfileViewState extends State<EditProfileView> {
             const SizedBox(height: 5),
             TextField(
               controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
+              obscureText: !isShowPassword,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    isShowPassword ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      isShowPassword = !isShowPassword;
+                    });
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 15),
@@ -168,9 +181,21 @@ class _EditProfileViewState extends State<EditProfileView> {
             const SizedBox(height: 5),
             TextField(
               controller: confirmPasswordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
+              obscureText: !isShowConfirmPassword,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    isShowConfirmPassword
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      isShowConfirmPassword = !isShowConfirmPassword;
+                    });
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 20),

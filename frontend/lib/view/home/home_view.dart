@@ -1,6 +1,5 @@
 import 'package:center/view/home/vegetableservice.dart';
-import 'package:center/view/home/cartservice.dart'; // Import CartService here
-import 'package:center/view/my_cart/my_cart_view.dart';
+import 'package:center/view/home/cartservice.dart';
 import 'package:flutter/material.dart';
 import 'package:center/common/color_extrnsion.dart';
 
@@ -28,7 +27,7 @@ class _HomeViewState extends State<HomeView> {
   bool isLoading = true;
 
   final VegetableService _vegetableService = VegetableService();
-  final CartService _cartService = CartService(); // Instantiate CartService
+  final CartService _cartService = CartService();
 
   @override
   void initState() {
@@ -66,52 +65,54 @@ class _HomeViewState extends State<HomeView> {
 
   Future<void> addToCart(String userId, Map<String, dynamic> newItem) async {
     try {
-      // Step 1: Fetch current cart items from the backend
+      // Step 1: Fetch current cart items
       List<Map<String, dynamic>> currentCartItems =
           await _cartService.fetchCart(userId);
 
-      // Step 2: Check if the item already exists in the cart and update quantity if it does
+      // Step 2: Check if item exists and update quantity
       bool isFound = false;
       for (var cartItem in currentCartItems) {
-        if (cartItem["name"] == newItem["name"]) {
-          // Only increment if qty is not null, else set it to 1
-          cartItem["qty"] = (cartItem["qty"] ?? 0) + 1;
+        if (cartItem["itemId"] == newItem["_id"]) {
+          cartItem["quantity"] = (cartItem["quantity"] ?? 0) + 1;
           isFound = true;
           break;
         }
       }
 
-      // Step 3: If item is not found, add it with quantity initialized to 1
+      // Step 3: If item not found, add it with required structure
       if (!isFound) {
-        currentCartItems.add({...newItem, "qty": 1});
+        currentCartItems.add({
+          "itemId": newItem["_id"], // Make sure your vegetable objects have _id
+          "name": newItem["name"],
+          "quantity": 1,
+          "unitprice": newItem["unitprice"],
+        });
       }
 
-      // Step 4: Save the updated cart back to the database
+      // Step 4: Save updated cart
       await _cartService.saveCart(userId, currentCartItems);
+
+      // Step 5: Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Item added to cart successfully')),
+        );
+      }
     } catch (error) {
       print('Error in addToCart: $error');
-      // Optionally, remove the SnackBar if you don't want to show an error message on duplicate add
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add item to cart: $error')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add item to cart: $error')),
+        );
+      }
     }
-  }
-
-  void navigateToCart() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MyCartView(
-          cartItems: cartItems,
-          userId: widget.userId,
-          role: widget.role,
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final gridCrossAxisCount = screenWidth > 600 ? 3 : 2;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -123,75 +124,93 @@ class _HomeViewState extends State<HomeView> {
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 10),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: TextField(
-                      controller: txtSearch,
-                      decoration: const InputDecoration(
-                        hintText: 'Search',
-                        prefixIcon: Icon(Icons.search, color: Colors.grey),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(15)),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                    child: SizedBox(
+                      height: screenWidth * 0.1,
+                      child: TextField(
+                        controller: txtSearch,
+                        decoration: const InputDecoration(
+                          hintText: 'Search',
+                          prefixIcon: Icon(Icons.search, color: Colors.grey),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
                         ),
+                        onChanged: filterItems,
                       ),
-                      onChanged: filterItems,
                     ),
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 10),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: screenWidth * 0.03),
                       child: GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.8,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: gridCrossAxisCount,
+                          childAspectRatio: 0.75,
+                          crossAxisSpacing: screenWidth * 0.03,
+                          mainAxisSpacing: screenWidth * 0.03,
                         ),
                         itemCount: filteredItems.length,
                         itemBuilder: (context, index) {
                           var pObj = filteredItems[index];
                           return Card(
-                            elevation: 5,
+                            elevation: 4,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(8),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Image.asset(
-                                    pObj["icon"] ??
-                                        '/assets/img/placeholder.png',
-                                    width: 100,
-                                    height: 100,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Icon(Icons.image, size: 100);
-                                    },
+                                  Expanded(
+                                    child: Center(
+                                      child: Image.network(
+                                        pObj["image"] ??
+                                            'https://via.placeholder.com/100',
+                                        width: screenWidth * 0.2,
+                                        height: screenWidth * 0.2,
+                                        fit: BoxFit.contain,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return Icon(Icons.image,
+                                              size: screenWidth * 0.2);
+                                        },
+                                      ),
+                                    ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 5),
                                   Text(
                                     pObj["name"] ?? "Unknown Vegetable",
-                                    style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      fontSize: screenWidth * 0.04,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   Text(
                                     "Available Stock: ${pObj["quantity"] ?? 'N/A'} kg",
-                                    style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Color.fromARGB(255, 17, 48, 28)),
+                                    style: TextStyle(
+                                      fontSize: screenWidth * 0.035,
+                                      color:
+                                          const Color.fromARGB(255, 17, 48, 28),
+                                    ),
                                   ),
                                   Text(
                                     "Unit Price: Rs. ${pObj["unitprice"] ?? '0'}",
-                                    style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Color.fromARGB(255, 17, 48, 28)),
+                                    style: TextStyle(
+                                      fontSize: screenWidth * 0.035,
+                                      color:
+                                          const Color.fromARGB(255, 17, 48, 28),
+                                    ),
                                   ),
-                                  const Spacer(),
+                                  const SizedBox(height: 5),
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: ElevatedButton(
@@ -202,10 +221,18 @@ class _HomeViewState extends State<HomeView> {
                                             255, 17, 48, 28),
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
-                                              BorderRadius.circular(12),
+                                              BorderRadius.circular(10),
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: screenWidth * 0.02,
+                                          vertical: screenWidth * 0.015,
                                         ),
                                       ),
-                                      child: const Text("Add to Cart"),
+                                      child: Text(
+                                        "Add to Cart",
+                                        style: TextStyle(
+                                            fontSize: screenWidth * 0.035),
+                                      ),
                                     ),
                                   ),
                                 ],

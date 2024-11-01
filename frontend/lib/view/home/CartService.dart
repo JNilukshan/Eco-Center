@@ -2,17 +2,29 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class CartService {
-  // Base URL for the API
-  final String baseUrl = 'http://localhost:5000/api/cart';
+  final String baseUrl =
+      "http://localhost:5000/api/cart"; // Update with actual server address
 
-  // Save cart items to the database
+  // Add an item to the cart
+  Future<http.Response> addToCart(String userId, String itemId) async {
+    final response = await http.post(
+      Uri.parse(
+          '$baseUrl/cart/$itemId'), // Matches the backend route for addToCart
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(
+          {"userId": userId}), // Pass userId in the request body if required
+    );
+    return response;
+  }
+
+  // Save the entire cart to the database
   Future<void> saveCart(
       String userId, List<Map<String, dynamic>> cartItems) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/save-cart'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
+        body: jsonEncode({
           'userId': userId,
           'cartItems': cartItems,
         }),
@@ -45,7 +57,7 @@ class CartService {
     }
   }
 
-  // Fetch saved cart items from the database
+  // Fetch all cart items for a user
   Future<List<Map<String, dynamic>>> fetchCart(String userId) async {
     try {
       final response = await http.get(
@@ -54,7 +66,7 @@ class CartService {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = jsonDecode(response.body);
         return List<Map<String, dynamic>>.from(data['cartItems']);
       } else {
         throw Exception('Failed to load cart. Status: ${response.statusCode}');
@@ -65,23 +77,25 @@ class CartService {
     }
   }
 
-  // Update cart item quantity
+  // Update the quantity of an item in the cart
   Future<void> updateCartItemQuantity(
       String userId, String itemId, int quantity) async {
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/cart/$itemId'),
+        Uri.parse('$baseUrl/update-quantity/$userId/$itemId'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'userId': userId, 'quantity': quantity}),
+        body: json.encode({
+          'quantity': quantity,
+        }),
       );
 
       if (response.statusCode != 200) {
         throw Exception(
-            'Failed to update item quantity. Status: ${response.statusCode}');
+            'Failed to update quantity. Status: ${response.statusCode}');
       }
     } catch (e) {
       print('Error in updateCartItemQuantity: $e');
-      throw Exception('Error updating item quantity: $e');
+      throw Exception('Error updating quantity: $e');
     }
   }
 }

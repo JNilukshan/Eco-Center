@@ -4,6 +4,7 @@ const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 const path = require('path');
 const fs = require('fs');  
+const cors = require('cors');
 
 //register wholesellers and truckdrivers
 

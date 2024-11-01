@@ -2,25 +2,37 @@ const Vegetable = require('../models/vegetableModel');
 const Wholeseller = require('../models/wholesellerModel');
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
+const cors = require('cors');
 
-// Get all items from the wholeseller's cart
+
 exports.getCart = async (req, res) => {
   try {
     const { userId } = req.params;
-    const wholeseller = await Wholeseller.findById(userId);
+    const wholeseller = await Wholeseller.findById(userId).populate({
+      path: 'vegetablesCart.itemId',
+      model: 'Vegetable',
+      select: 'name unitprice image', // Select only the fields needed
+    });
+
     if (!wholeseller) return res.status(404).json({ error: 'Wholeseller not found' });
 
-    const allCartItems = wholeseller.vegetablesCart;
-    const grandTotal = allCartItems.reduce((total, item) => total + item.unitprice * item.quantity, 0);
+    // Map cart items to include populated fields from Vegetable model
+    const cartItems = wholeseller.vegetablesCart.map(item => ({
+      itemId: item.itemId._id,
+      name: item.itemId.name,
+      quantity: item.quantity,
+      unitprice: item.itemId.unitprice,
+      image: item.itemId.image,
+    }));
 
-    res.json({ cartItems: allCartItems, grandTotal });
+    res.json({ cartItems });
   } catch (error) {
     console.error('Error in getCart:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
-// Add an item to the wholeseller's cart
+
 exports.addToCart = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -39,9 +51,7 @@ exports.addToCart = async (req, res) => {
     } else {
       wholeseller.vegetablesCart.push({
         itemId: selectedVegetable._id,
-        name: selectedVegetable.name,
-        quantity: 1,
-        unitprice: selectedVegetable.unitprice,
+        quantity: 0,
       });
     }
     await wholeseller.save();
@@ -52,51 +62,65 @@ exports.addToCart = async (req, res) => {
   }
 };
 
-// Update cart item quantity
+
 exports.updateCartItemQuantity = async (req, res) => {
+  const { userId, itemId } = req.params;
+  const { quantity } = req.body;
+
+  console.log('userId:', userId);
+  console.log('itemId:', itemId);
+  console.log('quantity:', quantity);
+
   try {
-    const { userId, itemId } = req.params;
-    const { quantity } = req.body;
-
-    const wholeseller = await Wholeseller.findById(userId);
-    if (!wholeseller) return res.status(404).json({ error: 'Wholeseller not found' });
-
-    const cartItem = wholeseller.vegetablesCart.find((item) => item.itemId.toString() === itemId);
-    if (!cartItem) return res.status(404).json({ error: 'Item not found in cart' });
-
-    cartItem.quantity = quantity;
-    if (quantity === 0) {
-      wholeseller.vegetablesCart = wholeseller.vegetablesCart.filter((item) => item.itemId.toString() !== itemId);
+    const user = await Wholeseller.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
-    await wholeseller.save();
-    res.json({ message: 'Cart updated successfully', cart: wholeseller.vegetablesCart });
+    const cartItem = user.vegetablesCart.find(item => item.itemId.toString() === itemId);
+    if (!cartItem) {
+      return res.status(404).json({ message: 'Item not found in cart' });
+    }
+    if (quantity === 0) {
+      user.vegetablesCart = user.vegetablesCart.filter(item => item.itemId.toString() !== itemId);
+    } else {
+      // Update quantity if greater than 0
+      cartItem.quantity = quantity;
+    }
+    await user.save();
+
+    res.status(200).json({ message: 'Quantity updated successfully', cart: user.vegetablesCart });
   } catch (error) {
     console.error('Error in updateCartItemQuantity:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ message: 'Failed to update quantity', error });
   }
 };
+
 
 
 exports.saveCart = async (req, res) => {
   try {
     const { userId, cartItems } = req.body;
 
-    // Check if the user exists
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
     const user = await Wholeseller.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found. Cannot save cart.' });
     }
 
-    // Map the cart items with necessary fields and convert itemId to ObjectId
+    const missingFields = cartItems.some(item => item.unitprice === undefined);
+    if (missingFields) {
+      return res.status(400).json({ message: 'All items must include a unitprice.' });
+    }
+
     user.vegetablesCart = cartItems.map(item => ({
-      itemId: new ObjectId(item.itemId), 
-      name: item.name,
+      itemId: new mongoose.Types.ObjectId(item.itemId),
       quantity: item.quantity,
-      unitprice: item.unitprice,
     }));
 
     await user.save();
-
     res.status(200).json({ message: 'Cart saved successfully', cart: user.vegetablesCart });
   } catch (error) {
     console.error('Error saving cart:', error);
@@ -108,31 +132,43 @@ exports.saveCart = async (req, res) => {
 exports.fetchCart = async (req, res) => {
   try {
     const { userId } = req.params;
-    const wholeseller = await Wholeseller.findById(userId);
+    const wholeseller = await Wholeseller.findById(userId).populate({
+      path: 'vegetablesCart.itemId',
+      model: 'Vegetable',
+      select: 'name unitprice image'
+    });
+
     if (!wholeseller) return res.status(404).json({ error: 'User not found' });
 
-    res.status(200).json({ cartItems: wholeseller.vegetablesCart });
+    // Filter out any items where `itemId` is null
+    const cartItems = wholeseller.vegetablesCart
+      .filter(item => item.itemId !== null) // Ensure itemId is not null
+      .map(item => ({
+        itemId: item.itemId._id,
+        name: item.itemId.name,
+        quantity: item.quantity,
+        unitprice: item.itemId.unitprice,
+        image: item.itemId.image
+      }));
+
+    res.status(200).json({ cartItems });
   } catch (error) {
     console.error('Error in fetchCart:', error);
     res.status(500).json({ error: 'Failed to load cart' });
   }
 };
 
-// Remove an item from the cart
+
 exports.removeFromCart = async (req, res) => {
   try {
     const { userId, itemId } = req.params;
-    console.log("Received request to remove item:", { userId, itemId });
 
-    // Check if `userId` is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(itemId)) {
-      console.log("Invalid userId or itemId");
       return res.status(400).json({ error: 'Invalid userId or itemId' });
     }
 
     const wholeseller = await Wholeseller.findById(userId);
     if (!wholeseller) {
-      console.log("Wholeseller not found with userId:", userId);
       return res.status(404).json({ error: 'Wholeseller not found' });
     }
 
@@ -140,11 +176,9 @@ exports.removeFromCart = async (req, res) => {
     wholeseller.vegetablesCart = wholeseller.vegetablesCart.filter((item) => item.itemId.toString() !== itemId);
     
     if (wholeseller.vegetablesCart.length === initialCartLength) {
-      console.log("Item not found in cart with itemId:", itemId);
       return res.status(404).json({ error: 'Item not found in cart' });
     }
 
-    // Save the updated cart
     await wholeseller.save();
     res.status(200).json({ message: 'Item removed from cart', cart: wholeseller.vegetablesCart });
   } catch (error) {

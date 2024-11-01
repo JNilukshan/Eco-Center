@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.center"
-    compileSdkVersion 33          // Explicitly specify compile SDK version
+    compileSdkVersion 34          // Explicitly specify compile SDK version
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -20,17 +20,23 @@ android {
     defaultConfig {
         applicationId = "com.example.center"
         minSdkVersion 21             // Explicitly set min SDK
-        targetSdkVersion 33          // Explicitly set target SDK
+        targetSdkVersion 34          // Explicitly set target SDK
         versionCode flutter.versionCode
         versionName flutter.versionName
     }
 
     buildTypes {
-        release {
-            signingConfig = signingConfigs.debug
-            minifyEnabled false       // Recommended for release builds if you haven’t configured ProGuard/R8
-        }
+    release {
+        minifyEnabled true         // Enables code shrinking
+        shrinkResources true       // Enables unused resources shrinking
+        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
     }
+    debug {
+        minifyEnabled false        // Disables shrinking for debug mode
+        shrinkResources false      // Disables resource shrinking for debug mode
+    }
+}
+
 }
 
 flutter {

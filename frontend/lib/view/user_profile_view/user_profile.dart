@@ -298,7 +298,7 @@ class _UserProfileViewState extends State<UserProfileView> {
                           icon: Icons.local_shipping,
                           title: widget.role == 'wholeseller'
                               ? "Available Drivers"
-                              : "Track Order",
+                              : "Find the way",
                           onTap: () {
                             if (widget.role == 'wholeseller') {
                               Navigator.push(

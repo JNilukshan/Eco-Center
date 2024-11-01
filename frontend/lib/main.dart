@@ -1,10 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'dart:io' show Platform;
 import 'package:center/common/color_extrnsion.dart';
 import 'package:center/view/login/splash_view.dart';
 import 'package:center/view/login/loginView.dart';
 import 'package:center/view/home/home_view.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Conditionally set up Stripe for mobile platforms only
+  if (Platform.isAndroid || Platform.isIOS) {
+    Stripe.publishableKey =
+        'your_publishable_key_here'; // Replace with your actual Stripe publishable key
+  } else {
+    print("Stripe is not supported on this platform.");
+  }
+
   runApp(const MyApp());
 }
 
@@ -24,7 +36,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/splash',
       routes: {
         '/splash': (context) => const SplashView(),
-        '/login': (context) => const LoginView(userId: 'userId',),
+        '/login': (context) => const LoginView(userId: 'userId'),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/home') {

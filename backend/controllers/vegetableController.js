@@ -1,4 +1,5 @@
 const Vegetable = require('../models/vegetableModel');
+const cors = require('cors');
 
 // Get all vegetables
 exports.getAllVegetables = async (req, res) => {

@@ -11,8 +11,8 @@ class MyCartView extends StatefulWidget {
   const MyCartView({
     super.key,
     required this.userId,
-    required this.role,
     required List<Map<String, dynamic>> cartItems,
+    required this.role,
   });
 
   @override
@@ -20,80 +20,83 @@ class MyCartView extends StatefulWidget {
 }
 
 class _MyCartViewState extends State<MyCartView> {
-  List<Map<String, dynamic>> cartItems = [];
   final CartService _cartService = CartService();
+  List<Map<String, dynamic>> cartItems = [];
   bool isLoading = true;
   List<TextEditingController> qtyControllers = [];
 
   @override
   void initState() {
     super.initState();
-    _loadCartItems();
+    _fetchCart();
   }
 
-  // Load cart items from backend based on userId using CartService
-  Future<void> _loadCartItems() async {
+  Future<void> _fetchCart() async {
+    setState(() => isLoading = true);
     try {
-      setState(() => isLoading = true);
       final fetchedCartItems = await _cartService.fetchCart(widget.userId);
       setState(() {
-        cartItems = fetchedCartItems;
+        cartItems = List<Map<String, dynamic>>.from(fetchedCartItems);
         qtyControllers = List.generate(cartItems.length, (index) {
           return TextEditingController(
-            text: (cartItems[index]["qty"] ?? '').toString(),
+            text: (cartItems[index]["quantity"] ?? '').toString(),
           );
         });
         isLoading = false;
       });
-    } catch (e) {
+    } catch (error) {
+      print('Error fetching cart: $error');
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load cart: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load cart: $error')),
+        );
+      }
     }
   }
 
-
-  // Calculate total price
-  double getTotalPrice() {
-    double total = 0.0;
-    for (var item in cartItems) {
-      double unitPrice = (item["unitprice"] ?? 0.0).toDouble();
-      int quantity = (item["qty"] ?? 0).toInt();
-      total += unitPrice * quantity;
-    }
-    return total;
-  }
-
-  // Update item quantity
-  void onQuantityChange(int index, String value) {
-    int quantity = int.tryParse(value) ?? 0;
-    setState(() {
-      cartItems[index]["qty"] = quantity;
-    });
-    _cartService.saveCart(widget.userId, cartItems).catchError((error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save cart: $error')),
-      );
-    });
-  }
-
-  // Remove item from cart
-  void removeItem(int index) async {
+  void onQuantityChange(int index, String value) async {
     try {
-      String userId = widget.userId;
-      String itemId = cartItems[index]["itemId"];
+      int quantity = int.tryParse(value) ?? 0;
 
-      await _cartService.removeFromCart(userId, itemId);
+      // Update local state
+      setState(() {
+        cartItems[index]["quantity"] = quantity;
+      });
 
+      // Update in backend
+      await _cartService.updateCartItemQuantity(
+          widget.userId, cartItems[index]["itemId"], quantity);
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update quantity: $error')),
+      );
+    }
+  }
+
+  double getTotalPrice() {
+    return cartItems.fold(0.0, (total, item) {
+      final unitPrice = (item['unitprice'] ?? 0.0) as num;
+      final quantity = (item['quantity'] ?? 0) as num;
+      return total + (unitPrice * quantity);
+    });
+  }
+
+  Future<void> _removeItem(int index) async {
+    try {
+      String itemId = cartItems[index]["itemId"].toString();
+      await _cartService.removeFromCart(widget.userId, itemId);
       setState(() {
         cartItems.removeAt(index);
         qtyControllers.removeAt(index);
       });
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to remove item: $error')),
-      );
+      print('Error removing item: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to remove item: $error')),
+        );
+      }
     }
   }
 
@@ -101,7 +104,7 @@ class _MyCartViewState extends State<MyCartView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Cart'),
+        title: const Text("My Cart"),
         backgroundColor: TColor.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -130,21 +133,24 @@ class _MyCartViewState extends State<MyCartView> {
                       child: ListView.builder(
                         itemCount: cartItems.length,
                         itemBuilder: (context, index) {
-                          if (index >= qtyControllers.length) {
-                            return const SizedBox.shrink();
-                          }
-
-                          var item = cartItems[index];
+                          final item = cartItems[index];
                           final qtyController = qtyControllers[index];
 
                           return ListTile(
-                            leading: item["icon"] != null
-                                ? Image.asset(item["icon"],
-                                    width: 50, height: 50)
-                                : const Icon(Icons.image, size: 50),
-                            title: Text(item["name"] ?? "Unknown"),
+                            leading: item['image'] != null &&
+                                    item['image'].isNotEmpty
+                                ? Image.network(
+                                    item['image'],
+                                    width: 50,
+                                    height: 50,
+                                    errorBuilder: (context, error,
+                                            stackTrace) =>
+                                        const Icon(Icons.image_not_supported),
+                                  )
+                                : const Icon(Icons.image_not_supported),
+                            title: Text(item['name'] ?? "Unknown"),
                             subtitle:
-                                Text("Unit Price: Rs. ${item["unitprice"]}"),
+                                Text("Unit Price: Rs. ${item['unitprice']}"),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -153,9 +159,7 @@ class _MyCartViewState extends State<MyCartView> {
                                   child: TextField(
                                     controller: qtyController,
                                     keyboardType: TextInputType.number,
-                                    textAlign: TextAlign.left,
                                     decoration: InputDecoration(
-                                      hintText: 'kg',
                                       contentPadding:
                                           const EdgeInsets.symmetric(
                                               vertical: 5, horizontal: 10),
@@ -163,19 +167,14 @@ class _MyCartViewState extends State<MyCartView> {
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                     ),
-                                    onChanged: (value) {
-                                      if (value.isEmpty) {
-                                        onQuantityChange(index, "0");
-                                      } else {
-                                        onQuantityChange(index, value);
-                                      }
-                                    },
+                                    onChanged: (value) =>
+                                        onQuantityChange(index, value),
                                   ),
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.delete,
                                       color: Colors.red),
-                                  onPressed: () => removeItem(index),
+                                  onPressed: () => _removeItem(index),
                                 ),
                               ],
                             ),
@@ -193,46 +192,47 @@ class _MyCartViewState extends State<MyCartView> {
                     ),
                   ],
                 ),
-      bottomNavigationBar: BottomAppBar(
-        child: Container(
-          height: 80,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Total: Rs. ${getTotalPrice().toStringAsFixed(2)}',
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PaymentMethodScreen(
-                        totalPrice: getTotalPrice(),
+      bottomNavigationBar: cartItems.isEmpty
+          ? null
+          : BottomAppBar(
+              child: Container(
+                height: 80,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total: Rs. ${getTotalPrice().toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w600),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PaymentMethodScreen(
+                                totalPrice: getTotalPrice()),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 17, 48, 28),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Proceed to Payment',
+                        style: TextStyle(fontSize: 18),
                       ),
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 17, 48, 28),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  'Payment',
-                  style: TextStyle(fontSize: 18),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }
