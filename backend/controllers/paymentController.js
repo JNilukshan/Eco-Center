@@ -1,6 +1,6 @@
 const cors = require('cors');
 require('dotenv').config(); // Load environment variables from .env file
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY); // Initialize Stripe with the secret key
+const stripe = require('stripe')('sk_test_51QFpqSF5Av59QJJjF9CTBiPZB7WIwbwOR6hP8oRxsedHrS53nGVeQ90bSRuc4Bz4drFXkcyVuQDTdIBFp7fO0vfT00SUgrLjDR'); // Initialize Stripe with the secret key
 
 // Placeholder for notification and booking models (if needed in the future)
 // const Notification = require("../models/notificationSchema");

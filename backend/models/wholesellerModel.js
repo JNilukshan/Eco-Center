@@ -25,7 +25,7 @@ const wholesellerSchema = new mongoose.Schema({
       itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vegetable' },
       name: { type: String, required: true },
       quantity: { type: Number, required: true },
-      unitprice: { type: Number, required: true },
+      unitprice: { type: Number, required: false },
     }
   ],
 }, { timestamps: true });

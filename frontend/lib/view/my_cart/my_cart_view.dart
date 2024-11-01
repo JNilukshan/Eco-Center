@@ -1,8 +1,9 @@
-import 'package:center/view/home/cartservice.dart';
 import 'package:center/view/my_cart/payment_screen.dart';
 import 'package:center/view/main_tabview/main_tabview.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:center/common/color_extrnsion.dart';
+import 'package:center/view/home/home_view.dart';
 
 class MyCartView extends StatefulWidget {
   final String userId;
@@ -36,10 +37,15 @@ class _MyCartViewState extends State<MyCartView> {
     try {
       final fetchedCartItems = await _cartService.fetchCart(widget.userId);
       setState(() {
-        cartItems = List<Map<String, dynamic>>.from(fetchedCartItems);
+        cartItems =
+            List<Map<String, dynamic>>.from(fetchedCartItems).map((item) {
+          item['name'] = item['name'] ?? 'Unknown Item';
+          return item;
+        }).toList();
+
         qtyControllers = List.generate(cartItems.length, (index) {
           return TextEditingController(
-            text: (cartItems[index]["quantity"] ?? '').toString(),
+            text: (cartItems[index]["quantity"] ?? '0').toString(),
           );
         });
         isLoading = false;
@@ -59,12 +65,10 @@ class _MyCartViewState extends State<MyCartView> {
     try {
       int quantity = int.tryParse(value) ?? 0;
 
-      // Update local state
       setState(() {
         cartItems[index]["quantity"] = quantity;
       });
 
-      // Update in backend
       await _cartService.updateCartItemQuantity(
           widget.userId, cartItems[index]["itemId"], quantity);
     } catch (error) {
@@ -159,6 +163,9 @@ class _MyCartViewState extends State<MyCartView> {
                                   child: TextField(
                                     controller: qtyController,
                                     keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                    ],
                                     decoration: InputDecoration(
                                       contentPadding:
                                           const EdgeInsets.symmetric(
@@ -167,8 +174,28 @@ class _MyCartViewState extends State<MyCartView> {
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                     ),
-                                    onChanged: (value) =>
-                                        onQuantityChange(index, value),
+                                    onChanged: (value) {
+                                      if (value.isEmpty ||
+                                          value == "0" ||
+                                          int.tryParse(value) == null) {
+                                        qtyController.text =
+                                            '1'; // Set to a minimum of 1
+                                        onQuantityChange(index, '1');
+                                      } else if (value.startsWith("0")) {
+                                        qtyController.text =
+                                            int.parse(value).toString();
+                                      } else {
+                                        onQuantityChange(index, value);
+                                      }
+                                    },
+                                    onEditingComplete: () {
+                                      if (qtyController.text.isEmpty ||
+                                          qtyController.text == "0") {
+                                        qtyController.text =
+                                            '1'; // Default to 1 if empty or zero
+                                        onQuantityChange(index, '1');
+                                      }
+                                    },
                                   ),
                                 ),
                                 IconButton(

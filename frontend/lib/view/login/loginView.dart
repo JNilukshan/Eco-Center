@@ -21,8 +21,31 @@ class _LoginViewState extends State<LoginView> {
   TextEditingController txtPassword = TextEditingController();
   bool isShow = false;
 
+  // Regular expression for validating email format
+  bool isValidEmail(String email) {
+    String pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
+    RegExp regExp = RegExp(pattern);
+    return regExp.hasMatch(email);
+  }
+
   // Combine function for both wholeseller and truck driver login
   Future<void> loginUser(String email, String password) async {
+    // Check if email or password fields are empty
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return; // Early exit if validation fails
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid email or password')),
+      );
+      return; // Early exit if email format is invalid
+    }
+
     try {
       final response = await http.post(
         Uri.parse('http://localhost:5000/api/auth/login'),
@@ -62,25 +85,24 @@ class _LoginViewState extends State<LoginView> {
                   DTruMainTabView(userId: userId, role: 'driver'),
             ),
           );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Unknown user role')),
-          );
         }
       } else {
-        // Handling specific status codes for better feedback
+        // Check for invalid credentials
         if (response.statusCode == 401) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Invalid email or password')),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login failed: ${response.statusCode}')),
+            SnackBar(content: Text('Login failed: ${response.body}')),
           );
         }
       }
     } catch (e) {
       print('Error during login: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An error occurred during login')),
+      );
     }
   }
 

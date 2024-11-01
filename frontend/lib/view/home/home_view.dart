@@ -1,7 +1,7 @@
+import 'dart:convert';
 import 'package:center/view/home/vegetableservice.dart';
-import 'package:center/view/home/cartservice.dart';
 import 'package:flutter/material.dart';
-import 'package:center/common/color_extrnsion.dart';
+import 'package:http/http.dart' as http;
 
 class HomeView extends StatefulWidget {
   final Function(List<Map<String, dynamic>> updatedCart) updateCart;
@@ -65,11 +65,10 @@ class _HomeViewState extends State<HomeView> {
 
   Future<void> addToCart(String userId, Map<String, dynamic> newItem) async {
     try {
-      // Step 1: Fetch current cart items
+      // Fetch current cart items from the backend
       List<Map<String, dynamic>> currentCartItems =
           await _cartService.fetchCart(userId);
 
-      // Step 2: Check if item exists and update quantity
       bool isFound = false;
       for (var cartItem in currentCartItems) {
         if (cartItem["itemId"] == newItem["_id"]) {
@@ -79,20 +78,24 @@ class _HomeViewState extends State<HomeView> {
         }
       }
 
-      // Step 3: If item not found, add it with required structure
       if (!isFound) {
         currentCartItems.add({
-          "itemId": newItem["_id"], // Make sure your vegetable objects have _id
-          "name": newItem["name"],
+          "itemId": newItem["_id"],
+          "name": newItem["name"] ?? "Unnamed Item", // Ensure name is not null
           "quantity": 1,
           "unitprice": newItem["unitprice"],
         });
       }
 
-      // Step 4: Save updated cart
+      // Log the complete list of cart items before sending to saveCart
+      print("Complete Cart Items to be sent for user $userId:");
+      for (var item in currentCartItems) {
+        print("Cart Item: $item");
+      }
+
+      // Call saveCart with updated cart items
       await _cartService.saveCart(userId, currentCartItems);
 
-      // Step 5: Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Item added to cart successfully')),
@@ -117,7 +120,6 @@ class _HomeViewState extends State<HomeView> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Available Vegetables'),
-        backgroundColor: TColor.primary,
       ),
       body: SafeArea(
         child: isLoading
@@ -247,5 +249,101 @@ class _HomeViewState extends State<HomeView> {
               ),
       ),
     );
+  }
+}
+
+class CartService {
+  final String baseUrl = "http://localhost:5000/api/cart";
+
+  Future<void> saveCart(
+      String userId, List<Map<String, dynamic>> cartItems) async {
+    try {
+      final processedCartItems = cartItems.map((item) {
+        return {
+          'itemId': item['itemId'],
+          'name': item['name'] ?? 'Unnamed Item', // Ensure name is not null
+          'quantity': item['quantity'] ?? 0,
+          'unitprice': item['unitprice'] ?? 0.0,
+        };
+      }).toList();
+
+      // Log each processed cart item to ensure fields are correctly set
+      print("Processed Cart Items for user $userId:");
+      for (var item in processedCartItems) {
+        print("Processed Cart Item: $item");
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/save-cart'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'cartItems': processedCartItems,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Failed to save cart. Status: ${response.statusCode}, Body: ${response.body}');
+      }
+    } catch (e) {
+      print('Error in saveCart: $e');
+      throw Exception('Error saving cart: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchCart(String userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/fetch-cart/$userId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return List<Map<String, dynamic>>.from(data['cartItems']);
+      } else {
+        throw Exception('Failed to load cart. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in fetchCart: $e');
+      throw Exception('Error fetching cart: $e');
+    }
+  }
+
+  Future<void> updateCartItemQuantity(
+      String userId, String itemId, int quantity) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/update-quantity/$userId/$itemId'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'quantity': quantity}),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Failed to update quantity. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in updateCartItemQuantity: $e');
+      throw Exception('Error updating quantity: $e');
+    }
+  }
+
+  Future<void> removeFromCart(String userId, String itemId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/remove-item/$userId/$itemId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Failed to remove item. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in removeFromCart: $e');
+      throw Exception('Error removing item from cart: $e');
+    }
   }
 }

@@ -114,7 +114,7 @@ exports.updateWholeseller = async (req, res) => {
 
 exports.updateDriver = async (req, res) => {
   const { userId } = req.params;
-  const { name, email, password, address, role, vehicleType, licenseExpiryDate } = req.body;
+  const { name, email, password, address, role } = req.body; // Removed vehicleType and licenseExpiryDate
 
   try {
     const driver = await Driver.findById(userId);
@@ -122,13 +122,13 @@ exports.updateDriver = async (req, res) => {
       return res.status(404).json({ message: 'Driver not found' });
     }
 
+    // Update fields only if they are provided in the request body
     driver.name = name || driver.name;
     driver.email = email || driver.email;
     driver.address = address || driver.address;
     driver.role = role || driver.role;
-    driver.vehicleType = vehicleType || driver.vehicleType;
-    driver.vehicalnumber = vehicalnumber || driver.vehicalnumber;
 
+    // Hash the password if provided
     if (password) {
       driver.password = await bcrypt.hash(password, 10);
     }
@@ -139,6 +139,7 @@ exports.updateDriver = async (req, res) => {
     res.status(500).json({ message: 'Error updating driver', error: err.message });
   }
 };
+
 
 
 //logout

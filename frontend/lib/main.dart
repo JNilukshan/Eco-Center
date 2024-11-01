@@ -12,7 +12,7 @@ void main() async {
   // Conditionally set up Stripe for mobile platforms only
   if (Platform.isAndroid || Platform.isIOS) {
     Stripe.publishableKey =
-        'your_publishable_key_here'; // Replace with your actual Stripe publishable key
+        'pk_test_51QFpqSF5Av59QJJj9nl3sOB5FCIn56jvjVzFEZxiceMA4P9fDfcsWLD5T5HqyW3rzkQLc4cqGwKHcOkteYx1zfdw00wxz3OhS5'; // Replace with your actual Stripe publishable key
   } else {
     print("Stripe is not supported on this platform.");
   }

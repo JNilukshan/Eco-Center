@@ -51,7 +51,7 @@ exports.addToCart = async (req, res) => {
     } else {
       wholeseller.vegetablesCart.push({
         itemId: selectedVegetable._id,
-        quantity: 0,
+        quantity: 1,
       });
     }
     await wholeseller.save();
@@ -110,15 +110,23 @@ exports.saveCart = async (req, res) => {
       return res.status(404).json({ message: 'User not found. Cannot save cart.' });
     }
 
-    const missingFields = cartItems.some(item => item.unitprice === undefined);
-    if (missingFields) {
-      return res.status(400).json({ message: 'All items must include a unitprice.' });
-    }
+    // Fetch each vegetable item and add the required fields
+    const processedCartItems = await Promise.all(
+      cartItems.map(async (item) => {
+        const vegetable = await Vegetable.findById(item.itemId);
+        if (!vegetable) {
+          throw new Error(`Vegetable with ID ${item.itemId} not found`);
+        }
+        return {
+          itemId: vegetable._id,
+          name: vegetable.name,
+          quantity: item.quantity,
+          unitprice: vegetable.unitprice,
+        };
+      })
+    );
 
-    user.vegetablesCart = cartItems.map(item => ({
-      itemId: new mongoose.Types.ObjectId(item.itemId),
-      quantity: item.quantity,
-    }));
+    user.vegetablesCart = processedCartItems;
 
     await user.save();
     res.status(200).json({ message: 'Cart saved successfully', cart: user.vegetablesCart });
@@ -127,6 +135,7 @@ exports.saveCart = async (req, res) => {
     res.status(500).json({ message: 'Failed to save cart', error: error.message });
   }
 };
+
 
 
 exports.fetchCart = async (req, res) => {
