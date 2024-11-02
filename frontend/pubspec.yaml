@@ -20,6 +20,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   fl_country_code_picker: ^0.1.9+1
   image_picker: ^0.8.4+8  
+  flutter_stripe: ^11.2.0
+  http_parser: ^4.0.0
 
 dev_dependencies:
   flutter_test:
@@ -34,3 +36,4 @@ flutter:
     - assets/img/
     - assets/img/home.png
     - assets/img/default_avatar.png
+    - assets/img/placeholder.png

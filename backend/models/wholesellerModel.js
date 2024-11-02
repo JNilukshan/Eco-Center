@@ -1,32 +1,34 @@
 const mongoose = require('mongoose');
 
 const wholesellerSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  address: { type: String, required: true },
-  password: { type: String, required: true },
-  photo: {type: String,default: null}, 
-  phone: {
+  name: { type: String },
+  email: {
     type: String,
-    required: true,
+    unique: true,
     validate: {
       validator: function(v) {
-        return /^\d{10}$/.test(v); // Ensures the phone number is exactly 10 digits
+        return /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(v); // Email format validation
       },
-      message: props => `${props.value} is not a valid 10-digit phone number!`
-    },
-  }, 
+      message: props => `${props.value} is not a valid email address!`
+    }
+  },
+  address: { type: String },
+  photo: { type: String, default: true },
+  password: { type: String },
+  phone: {
+    type: String,
+    
+  },
   otp: { type: String },
   role: { type: String, default: 'wholeseller' },
-
   vegetablesCart: [
     {
       itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vegetable' },
       name: { type: String, required: true },
-      amount: { type: Number, default: 1 },
-      price: { type: Number, required: true },
-    },
-  ],  
+      quantity: { type: Number, required: true },
+      unitprice: { type: Number, required: false },
+    }
+  ],
 }, { timestamps: true });
 
 const Wholeseller = mongoose.model('Wholeseller', wholesellerSchema);

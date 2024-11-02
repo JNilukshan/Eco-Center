@@ -17,7 +17,7 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        return response; 
+        return response;
       } else {
         throw Exception(
             'Failed to send OTP: ${response.statusCode} - ${response.body}');
@@ -77,3 +77,4 @@ class AuthService {
     }
   }
 }
+

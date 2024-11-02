@@ -1,6 +1,3 @@
-
-
-
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:center/common/color_extrnsion.dart';
@@ -22,13 +19,36 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   TextEditingController txtEmail = TextEditingController();
   TextEditingController txtPassword = TextEditingController();
-  bool isShow = false; 
+  bool isShow = false;
+
+  // Regular expression for validating email format
+  bool isValidEmail(String email) {
+    String pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
+    RegExp regExp = RegExp(pattern);
+    return regExp.hasMatch(email);
+  }
 
   // Combine function for both wholeseller and truck driver login
   Future<void> loginUser(String email, String password) async {
+    // Check if email or password fields are empty
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return; // Early exit if validation fails
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid email or password')),
+      );
+      return; // Early exit if email format is invalid
+    }
+
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5000/api/auth/login'), // Replace with your server URL
+        Uri.parse('http://localhost:5000/api/auth/login'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -43,44 +63,55 @@ class _LoginViewState extends State<LoginView> {
         final String userId = data['userId'];
         final String role = data['role'];
 
-        // Check the user's role to navigate to the appropriate dashboard
+        // Display success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login successful')),
+        );
+
+        // Navigate to the appropriate dashboard based on role
         if (role == 'wholeseller') {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => MainTabView(userId: userId, role: 'wholeseller',), 
+              builder: (context) =>
+                  MainTabView(userId: userId, role: 'wholeseller'),
             ),
           );
         } else if (role == 'driver') {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => DTruMainTabView(userId: userId, role: 'driver'), 
+              builder: (context) =>
+                  DTruMainTabView(userId: userId, role: 'driver'),
             ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Unknown user role')),
           );
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: ${response.statusCode}')),
-        );
+        // Check for invalid credentials
+        if (response.statusCode == 401) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Invalid email or password')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Login failed: ${response.body}')),
+          );
+        }
       }
     } catch (e) {
       print('Error during login: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An error occurred during login')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    var media = MediaQuery.sizeOf(context);
+    var media = MediaQuery.of(context).size;
     return Stack(
       children: [
-        Container(
-          color: Colors.white,
-        ),
+        Container(color: Colors.white),
         Scaffold(
           appBar: AppBar(
             backgroundColor: Colors.transparent,
@@ -123,15 +154,6 @@ class _LoginViewState extends State<LoginView> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: media.width * 0.03),
-                    Text(
-                      "Enter your email and password",
-                      style: TextStyle(
-                        color: TColor.secondaryText,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
                     SizedBox(height: media.width * 0.1),
                     LineTextfield(
                       controller: txtEmail,
@@ -139,6 +161,16 @@ class _LoginViewState extends State<LoginView> {
                       placeholder: "Enter your email address",
                       keyboardType: TextInputType.emailAddress,
                       obscureText: false,
+                      validator: (value) {
+                        return null;
+                      },
+                      titleTextStyle:
+                          const TextStyle(fontWeight: FontWeight.bold),
+                      decoration: const InputDecoration(
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.green),
+                        ),
+                      ),
                     ),
                     SizedBox(height: media.width * 0.07),
                     LineTextfield(
@@ -156,6 +188,16 @@ class _LoginViewState extends State<LoginView> {
                         icon: Icon(
                           !isShow ? Icons.visibility_off : Icons.visibility,
                           color: TColor.textTittle,
+                        ),
+                      ),
+                      validator: (value) {
+                        return null;
+                      },
+                      titleTextStyle:
+                          const TextStyle(fontWeight: FontWeight.bold),
+                      decoration: const InputDecoration(
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.green),
                         ),
                       ),
                     ),
@@ -178,7 +220,8 @@ class _LoginViewState extends State<LoginView> {
                             style: TextStyle(
                               color: TColor.primaryText,
                               fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                              fontWeight:
+                                  FontWeight.bold, // Bold Forgot Password text
                             ),
                           ),
                         ),
@@ -188,7 +231,7 @@ class _LoginViewState extends State<LoginView> {
                     RoundButton(
                       title: "Log In",
                       onPressed: () {
-                        // Call login function for both wholeseller and truckdriver
+                        // Call login function for both wholeseller and truck driver
                         loginUser(
                           txtEmail.text,
                           txtPassword.text,
@@ -210,25 +253,29 @@ class _LoginViewState extends State<LoginView> {
                                   child: Column(
                                     children: [
                                       ListTile(
-                                        title: const Text("Sign Up as Wholeseller"),
+                                        title: const Text(
+                                            "Sign Up as Wholeseller"),
                                         onTap: () {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
                                               builder: (context) =>
-                                                  const SignUpView(role: 'wholeseller',),
+                                                  const SignUpView(
+                                                      role: 'wholeseller'),
                                             ),
                                           );
                                         },
                                       ),
                                       ListTile(
-                                        title: const Text("Sign Up as Truck Driver"),
+                                        title: const Text(
+                                            "Sign Up as Truck Driver"),
                                         onTap: () {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
                                               builder: (context) =>
-                                                  const SignUpView(role: 'driver',),
+                                                  const SignUpView(
+                                                      role: 'driver'),
                                             ),
                                           );
                                         },

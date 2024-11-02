@@ -17,14 +17,13 @@ class SignUpView extends StatefulWidget {
 }
 
 class _SignUpViewState extends State<SignUpView> {
+  final _formKey = GlobalKey<FormState>();
   TextEditingController txtUsername = TextEditingController();
   TextEditingController txtEmail = TextEditingController();
   TextEditingController txtPassword = TextEditingController();
+  TextEditingController confirmPasswordController = TextEditingController();
   TextEditingController txtAddress = TextEditingController();
-  TextEditingController txtPhone =
-      TextEditingController(); // New phone number field
-
-  // Specific to truck drivers
+  TextEditingController txtPhone = TextEditingController();
   TextEditingController txtLicenseExpiry = TextEditingController();
 
   String? selectedVehicleType;
@@ -35,21 +34,12 @@ class _SignUpViewState extends State<SignUpView> {
     'Motorcycle',
     'Bus'
   ];
-  bool isShow = false;
+  bool isShowPassword = false;
+  bool isShowConfirmPassword = false;
 
   Future<void> signupUser(
       String name, String email, String password, String address, String phone,
-      {String? vehicleType, String? licenseExpiryDate}) async {
-    // Check if phone number is exactly 10 digits
-    if (phone.length != 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content:
-                Text('Phone number is incorrect. It should be 10 digits.')),
-      );
-      return;
-    }
-
+      {String? vehicleType, String? vehicalnumber}) async {
     try {
       final response = await http.post(
         Uri.parse('http://localhost:5000/api/auth/create'),
@@ -61,9 +51,9 @@ class _SignUpViewState extends State<SignUpView> {
           'email': email,
           'password': password,
           'address': address,
-          'phone': phone, // Include phone number
+          'phone': phone,
           'vehicleType': vehicleType ?? '',
-          'licenseExpiryDate': licenseExpiryDate ?? '',
+          'vehicalnumber': vehicalnumber ?? '',
           'role': widget.role,
         }),
       );
@@ -72,6 +62,12 @@ class _SignUpViewState extends State<SignUpView> {
         final data = jsonDecode(response.body);
         final String userId = data['userId'];
 
+        // Display success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registration successful')),
+        );
+
+        // Navigate to the appropriate dashboard based on role
         if (widget.role == 'wholeseller') {
           Navigator.push(
             context,
@@ -90,8 +86,10 @@ class _SignUpViewState extends State<SignUpView> {
           );
         }
       } else {
-        print('Failed to signup');
-        print(response.body);
+        final data = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? 'Registration failed')),
+        );
       }
     } catch (e) {
       print('Error occurred during signup: $e');
@@ -100,7 +98,7 @@ class _SignUpViewState extends State<SignUpView> {
 
   @override
   Widget build(BuildContext context) {
-    var media = MediaQuery.sizeOf(context);
+    var media = MediaQuery.of(context).size;
     return Stack(
       children: [
         Container(color: Colors.white),
@@ -119,140 +117,209 @@ class _SignUpViewState extends State<SignUpView> {
           body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset("assets/img/logoe.png",
-                          width: 200, height: 150),
-                    ],
-                  ),
-                  SizedBox(height: media.width * 0.02),
-                  Text(
-                    "Sign Up",
-                    style: TextStyle(
-                      color: TColor.primaryText,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w600,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset("assets/img/logoe.png",
+                            width: 200, height: 150),
+                      ],
                     ),
-                  ),
-                  SizedBox(height: media.width * 0.01),
-                  Text(
-                    "Enter your credentials to continue",
-                    style: TextStyle(
-                      color: TColor.secondaryText,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(height: media.width * 0.06),
-                  LineTextfield(
-                    controller: txtUsername,
-                    title: "Username",
-                    placeholder: "Enter your username",
-                    keyboardType: TextInputType.text,
-                    obscureText: false,
-                  ),
-                  SizedBox(height: media.width * 0.04),
-                  LineTextfield(
-                    controller: txtEmail,
-                    title: "Email",
-                    placeholder: "Enter your email address",
-                    keyboardType: TextInputType.emailAddress,
-                    obscureText: false,
-                  ),
-                  SizedBox(height: media.width * 0.04),
-                  LineTextfield(
-                    controller: txtAddress,
-                    title: "Address",
-                    placeholder: "Enter your address",
-                    keyboardType: TextInputType.streetAddress,
-                    obscureText: false,
-                  ),
-                  SizedBox(height: media.width * 0.04),
-                  LineTextfield(
-                    controller: txtPhone, // New phone field
-                    title: "Phone Number",
-                    placeholder: "Enter your 10-digit phone number",
-                    keyboardType: TextInputType.phone,
-                    obscureText: false,
-                  ),
-                  SizedBox(height: media.width * 0.04),
-                  if (widget.role == 'driver') ...[
-                    DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: "Vehicle Type",
-                        contentPadding: const EdgeInsets.symmetric(
-                            vertical: 16, horizontal: 12),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(5)),
+                    SizedBox(height: media.width * 0.02),
+                    Text(
+                      "Sign Up",
+                      style: TextStyle(
+                        color: TColor.primaryText,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w600,
                       ),
-                      value: selectedVehicleType,
-                      hint: const Text('Select your vehicle type'),
-                      items: vehicleTypes.map((String vehicle) {
-                        return DropdownMenuItem<String>(
-                          value: vehicle,
-                          child: Text(vehicle),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        setState(() {
-                          selectedVehicleType = newValue;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? 'Please select a vehicle type' : null,
+                    ),
+                    SizedBox(height: media.width * 0.06),
+                    LineTextfield(
+                      controller: txtUsername,
+                      title: "Username",
+                      placeholder: "Enter your username",
+                      keyboardType: TextInputType.text,
+                      obscureText: false,
+                      validator: (value) => null,
+                      titleTextStyle: const TextStyle(
+                          fontWeight: FontWeight.bold), // Bold title
                     ),
                     SizedBox(height: media.width * 0.04),
                     LineTextfield(
-                      controller: txtLicenseExpiry,
-                      title: "License Expiry Date",
-                      placeholder: "YYYY-MM-DD",
-                      keyboardType: TextInputType.text,
+                      controller: txtEmail,
+                      title: "Email",
+                      placeholder: "Enter your email address",
+                      keyboardType: TextInputType.emailAddress,
                       obscureText: false,
+                      validator: (value) => null,
+                      titleTextStyle: const TextStyle(
+                          fontWeight: FontWeight.bold), // Bold title
                     ),
                     SizedBox(height: media.width * 0.04),
-                  ],
-                  LineTextfield(
-                    controller: txtPassword,
-                    title: "Password",
-                    placeholder: "Enter your Password",
-                    keyboardType: TextInputType.visiblePassword,
-                    obscureText: !isShow,
-                    right: IconButton(
-                      onPressed: () {
-                        setState(() {
-                          isShow = !isShow;
-                        });
+                    LineTextfield(
+                      controller: txtAddress,
+                      title: "Address",
+                      placeholder: "Enter your address",
+                      keyboardType: TextInputType.streetAddress,
+                      obscureText: false,
+                      validator: (value) => null,
+                      titleTextStyle: const TextStyle(
+                          fontWeight: FontWeight.bold), // Bold title
+                    ),
+                    SizedBox(height: media.width * 0.04),
+                    LineTextfield(
+                      controller: txtPhone,
+                      title: "Phone Number",
+                      placeholder: "Enter your phone number",
+                      keyboardType: TextInputType.phone,
+                      obscureText: false,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your phone number';
+                        }
+                        if (!RegExp(r'^\d{9}$').hasMatch(value)) {
+                          return 'Phone number should contain 9 digits after +94';
+                        }
+                        return null;
                       },
-                      icon: Icon(
-                        !isShow ? Icons.visibility_off : Icons.visibility,
-                        color: TColor.textTittle,
+                      titleTextStyle: const TextStyle(
+                          fontWeight: FontWeight.bold), // Bold title
+                      decoration: const InputDecoration(
+                        prefixText: '+94 ',
                       ),
                     ),
-                  ),
-                  SizedBox(height: media.width * 0.05),
-                  RoundButton(
-                    title: "Sign Up",
-                    onPressed: () {
-                      signupUser(
-                        txtUsername.text,
-                        txtEmail.text,
-                        txtPassword.text,
-                        txtAddress.text,
-                        txtPhone.text, // Pass phone number to signup function
-                        vehicleType: widget.role == 'driver'
-                            ? selectedVehicleType
-                            : null,
-                        licenseExpiryDate: widget.role == 'driver'
-                            ? txtLicenseExpiry.text
-                            : null,
-                      );
-                    },
-                  ),
-                ],
+                    if (widget.role == 'driver') ...[
+                      SizedBox(height: media.width * 0.04),
+                      DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          labelText: "Vehicle Type",
+                          labelStyle: const TextStyle(
+                              fontWeight: FontWeight.bold), // Bold title
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 12),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(5)),
+                        ),
+                        value: selectedVehicleType,
+                        hint: const Text('Select your vehicle type'),
+                        items: vehicleTypes.map((String vehicle) {
+                          return DropdownMenuItem<String>(
+                            value: vehicle,
+                            child: Text(vehicle),
+                          );
+                        }).toList(),
+                        onChanged: (newValue) {
+                          setState(() {
+                            selectedVehicleType = newValue;
+                          });
+                        },
+                      ),
+                      SizedBox(height: media.width * 0.04),
+                      LineTextfield(
+                        controller: txtLicenseExpiry,
+                        title: "Vehicle number",
+                        placeholder: "Enter your vehicle number",
+                        keyboardType: TextInputType.text,
+                        obscureText: false,
+                        validator: (value) => null,
+                        titleTextStyle: const TextStyle(
+                            fontWeight: FontWeight.bold), // Bold title
+                      ),
+                    ],
+                    SizedBox(height: media.width * 0.04),
+                    LineTextfield(
+                      controller: txtPassword,
+                      title: "Password",
+                      placeholder: "Enter your Password",
+                      keyboardType: TextInputType.visiblePassword,
+                      obscureText: !isShowPassword,
+                      right: IconButton(
+                        icon: Icon(
+                          isShowPassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            isShowPassword = !isShowPassword;
+                          });
+                        },
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your password';
+                        }
+                        if (value.length < 7) {
+                          return 'Password must be at least 7 characters long';
+                        }
+                        if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]')
+                            .hasMatch(value)) {
+                          return 'Password must contain at least one symbol';
+                        }
+                        return null; // Return null if validation is successful
+                      },
+                      titleTextStyle: const TextStyle(
+                          fontWeight: FontWeight.bold), // Bold title
+                    ),
+                    SizedBox(height: media.width * 0.04),
+                    LineTextfield(
+                      controller: confirmPasswordController,
+                      title: "Confirm Password",
+                      placeholder: "Re-enter your password",
+                      keyboardType: TextInputType.visiblePassword,
+                      obscureText: !isShowConfirmPassword,
+                      right: IconButton(
+                        icon: Icon(
+                          isShowConfirmPassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            isShowConfirmPassword = !isShowConfirmPassword;
+                          });
+                        },
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please confirm your password';
+                        }
+                        if (value != txtPassword.text) {
+                          return 'Passwords do not match';
+                        }
+                        return null;
+                      },
+                      titleTextStyle: const TextStyle(
+                          fontWeight: FontWeight.bold), // Bold title
+                    ),
+                    SizedBox(height: media.width * 0.05),
+                    RoundButton(
+                      title: "Sign Up",
+                      onPressed: () {
+                        if (_formKey.currentState?.validate() ?? false) {
+                          signupUser(
+                            txtUsername.text,
+                            txtEmail.text,
+                            txtPassword.text,
+                            txtAddress.text,
+                            txtPhone.text,
+                            vehicleType: widget.role == 'driver'
+                                ? selectedVehicleType
+                                : null,
+                            vehicalnumber: widget.role == 'driver'
+                                ? txtLicenseExpiry.text
+                                : null,
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

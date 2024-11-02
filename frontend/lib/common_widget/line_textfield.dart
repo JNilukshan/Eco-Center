@@ -6,15 +6,24 @@ class LineTextfield extends StatelessWidget {
   final String title;
   final String placeholder;
   final TextInputType? keyboardType;
-  final bool  obscureText;
+  final bool obscureText;
   final Widget? right;
-  
-  const LineTextfield({super.key,
-   required this.controller,
-    required this.title, 
-    required this.placeholder, 
-     this.right,
-     required this.keyboardType, required this.obscureText});
+  final String? Function(String?)? validator;
+  final TextStyle? titleTextStyle;
+  final InputDecoration? decoration;
+
+  const LineTextfield({
+    super.key,
+    required this.controller,
+    required this.title,
+    required this.placeholder,
+    this.right,
+    this.keyboardType,
+    this.obscureText = false,
+    this.validator,
+    this.titleTextStyle,
+    this.decoration,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,36 +31,49 @@ class LineTextfield extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-      Text( 
-         title,
-          style: TextStyle(
-          color: TColor.textTittle,
-          fontSize: 16, // Small text remains readable on iPhone
-          fontWeight: FontWeight.w400,
-          ),                                     
-        ),
-         TextField(
-          controller: controller,
-          keyboardType: TextInputType.phone,
-          obscureText: obscureText ,
-          decoration: InputDecoration(
-            suffixIcon: right,
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            hintText: placeholder,
-            hintStyle: TextStyle(
-            color:TColor.placeholder,
-            fontSize: 17,
-          ), 
-        ),  
-      ),
-            Container(
-            width: double.maxFinite,
-            height: 1,
-            color: const Color(0xffE2E2E2),
+        Text(
+          title,
+          style: titleTextStyle ?? const TextStyle(
+            color: Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
           ),
-        ],
-      );
+        ),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          decoration: decoration?.copyWith(
+            hintText: placeholder,
+            suffixIcon: right,
+            enabledBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xffE2E2E2)),
+            ),
+            focusedBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.green),
+            ),
+          ) ?? InputDecoration(
+            hintText: placeholder,
+            suffixIcon: right,
+            enabledBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xffE2E2E2)),
+            ),
+            focusedBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.green),
+            ),
+            hintStyle: TextStyle(
+              color: TColor.placeholder,
+              fontSize: 17,
+            ),
+          ),
+          validator: validator,
+        ),
+        Container(
+          width: double.infinity,
+          height: 1,
+          color: const Color(0xffE2E2E2),
+        ),
+      ],
+    );
   }
 }

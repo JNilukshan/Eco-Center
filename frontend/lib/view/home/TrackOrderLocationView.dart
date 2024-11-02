@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:center/view/home/dtru_noti_home.dart';
 import 'package:center/view/main_tabview/main_tabview.dart';
 import 'package:center/view/main_tabview/dtru_main_tab.dart';
 
@@ -131,7 +130,7 @@ class _TrackOrderLocationViewState extends State<TrackOrderLocationView> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => DTruNotificationHome(
+                        builder: (context) => TrackOrderLocationView(
                           userId: widget.userId,
                           role: widget.role,
                         ),
@@ -153,7 +152,7 @@ class _TrackOrderLocationViewState extends State<TrackOrderLocationView> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => DTruNotificationHome(
+                        builder: (context) => TrackOrderLocationView(
                           userId: widget.userId,
                           role: widget.role,
                         ),

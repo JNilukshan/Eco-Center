@@ -2,23 +2,24 @@ const mongoose = require('mongoose');
 
 const driverSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  address: { type: String, required: true },
-  photo: {type: String,default: null},
-  password: { type: String, required: true },
-  vehicleType: { type: String },
-  licenseExpiryDate: { type: Date },
-  phone: {
+  email: {
     type: String,
     required: true,
+    unique: true,
     validate: {
       validator: function(v) {
-        return /^\d{10}$/.test(v); // Ensures the phone number is exactly 10 digits
+        return /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(v); // Email format validation
       },
-      message: props => `${props.value} is not a valid 10-digit phone number!`
-    },
+      message: props => `${props.value} is not a valid email address!`
+    }
   },
-  otp: { type: String }, 
+  address: { type: String, required: true },
+  photo: { type: String, default: null }, // Changed to default as null
+  password: { type: String, required: true },
+  vehicleType: { type: String },
+  vehicalnumber: { type: String },
+  phone: { type: String, required: true },
+  otp: { type: String },
   role: { type: String, default: 'driver' },
 }, { timestamps: true });
 
