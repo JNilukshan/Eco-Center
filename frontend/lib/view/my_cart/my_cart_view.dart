@@ -199,8 +199,8 @@ class _MyCartViewState extends State<MyCartView> {
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red),
+                                  icon: Icon(Icons.delete,
+                                      color: TColor.primary),
                                   onPressed: () => _removeItem(index),
                                 ),
                               ],
@@ -209,14 +209,7 @@ class _MyCartViewState extends State<MyCartView> {
                         },
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'Total: Rs. ${getTotalPrice().toStringAsFixed(2)}',
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                    
                   ],
                 ),
       bottomNavigationBar: cartItems.isEmpty
@@ -252,7 +245,7 @@ class _MyCartViewState extends State<MyCartView> {
                         ),
                       ),
                       child: const Text(
-                        'Proceed to Payment',
+                        'Payment',
                         style: TextStyle(fontSize: 18),
                       ),
                     ),

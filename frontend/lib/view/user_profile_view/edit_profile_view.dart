@@ -40,10 +40,12 @@ class _EditProfileViewState extends State<EditProfileView> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
+        // Directly access 'name', 'email', 'address' at the root level
         setState(() {
-          usernameController.text = data['user']['name'] ?? '';
-          emailController.text = data['user']['email'] ?? '';
-          addressController.text = data['user']['address'] ?? '';
+          usernameController.text = data['name'] ?? '';
+          emailController.text = data['email'] ?? '';
+          addressController.text = data['address'] ?? '';
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

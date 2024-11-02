@@ -14,7 +14,7 @@ const driverSchema = new mongoose.Schema({
     }
   },
   address: { type: String, required: true },
-  photo: { type: String, default: null },
+  photo: { type: String, default: true },
   password: { type: String, required: true },
   vehicleType: { type: String },
   vehicalnumber: { type: Date },

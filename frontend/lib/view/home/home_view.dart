@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:center/view/home/vegetableservice.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:center/common/color_extrnsion.dart';
 
 class HomeView extends StatefulWidget {
   final Function(List<Map<String, dynamic>> updatedCart) updateCart;
@@ -120,6 +121,7 @@ class _HomeViewState extends State<HomeView> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Available Vegetables'),
+        backgroundColor: TColor.primary,
       ),
       body: SafeArea(
         child: isLoading

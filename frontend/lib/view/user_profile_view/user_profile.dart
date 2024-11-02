@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:center/view/user_profile_view/available_drivers_view.dart';
 import 'package:center/view/user_profile_view/track_order_view.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,6 +36,25 @@ class _UserProfileViewState extends State<UserProfileView> {
     fetchUserProfile();
   }
 
+  void showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> saveUserData(String userId, String name, String email,
+      String role, String? photoUrl) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userId', userId);
+    await prefs.setString('name', name);
+    await prefs.setString('email', email);
+    await prefs.setString('role', role);
+    if (photoUrl != null) {
+      await prefs.setString('photoUrl', photoUrl);
+    }
+  }
+
   Future<void> fetchUserProfile() async {
     setState(() => isLoading = true);
 
@@ -46,21 +64,46 @@ class _UserProfileViewState extends State<UserProfileView> {
 
     try {
       final response = await http.get(Uri.parse(profileUrl));
+      print("API response status: ${response.statusCode}");
+      print("API response body: ${response.body}");
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
-          name = data['user']['name'] ?? 'Name not available';
-          email = data['user']['email'] ?? 'Email not available';
-          photoUrl = data['user']['photoUrl'];
-        });
+
+        if (data != null) {
+          setState(() {
+            name = data['name'] ?? 'Name not available';
+            email = data['email'] ?? 'Email not available';
+            photoUrl = data['photo'] != null
+                ? 'http://localhost:5000/uploads/profile-photos/${data['photo']}' // Construct full URL
+                : null;
+          });
+
+          await saveUserData(
+              widget.userId, name!, email!, widget.role, photoUrl);
+        } else {
+          showSnackBar('User data is not available');
+          await loadUserDataFromPrefs();
+        }
       } else {
         showSnackBar('Failed to load profile: ${response.statusCode}');
+        await loadUserDataFromPrefs();
       }
     } catch (e) {
       showSnackBar('Error: $e');
+      await loadUserDataFromPrefs();
     } finally {
       setState(() => isLoading = false);
     }
+  }
+
+  Future<void> loadUserDataFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      name = prefs.getString('name') ?? 'Name not available';
+      email = prefs.getString('email') ?? 'Email not available';
+      photoUrl = prefs.getString('photoUrl');
+    });
   }
 
   ImageProvider<Object> _getProfileImage() {
@@ -73,13 +116,6 @@ class _UserProfileViewState extends State<UserProfileView> {
     }
   }
 
-  void showSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
   Future<void> _pickImageAndUpload(String userId) async {
     try {
       final picker = ImagePicker();
@@ -90,32 +126,40 @@ class _UserProfileViewState extends State<UserProfileView> {
         imageQuality: 85,
       );
 
-      if (pickedFile == null) return;
+      if (pickedFile == null) {
+        showSnackBar('No image selected');
+        return;
+      }
 
       setState(() => _profileImage = File(pickedFile.path));
 
-      if (kIsWeb) {
-        showSnackBar("Photo upload is currently not supported on the web.");
+      var request = http.MultipartRequest(
+        'PUT',
+        Uri.parse('http://localhost:5000/api/auth/profile/photo/$userId'),
+      );
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'photo',
+          pickedFile.path,
+        ),
+      );
+
+      var response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        final data = json.decode(responseBody);
+        final newPhotoUrl =
+            'http://localhost:5000/uploads/profile-photos/${data['photoUrl']}';
+        await saveUserData(
+            widget.userId, name ?? "", email ?? "", widget.role, newPhotoUrl);
+        setState(() {
+          photoUrl = newPhotoUrl;
+        });
+        showSnackBar('Profile photo updated successfully');
       } else {
-        var request = http.MultipartRequest(
-          'PUT',
-          Uri.parse('http://localhost:5000/api/auth/profile/photo/$userId'),
-        );
-
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'photo',
-            pickedFile.path,
-          ),
-        );
-
-        var response = await request.send();
-        if (response.statusCode == 200) {
-          showSnackBar('Profile photo updated successfully');
-          await fetchUserProfile();
-        } else {
-          showSnackBar('Failed to upload photo: ${response.statusCode}');
-        }
+        showSnackBar('Failed to upload photo: ${response.statusCode}');
       }
     } catch (e) {
       showSnackBar('Error uploading photo: $e');
@@ -342,7 +386,7 @@ class _UserProfileViewState extends State<UserProfileView> {
                                       deleteAccount();
                                     },
                                     style: TextButton.styleFrom(
-                                      foregroundColor: Colors.red,
+                                      foregroundColor: TColor.primary,
                                     ),
                                     child: const Text("Delete Account"),
                                   ),
