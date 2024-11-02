@@ -102,17 +102,28 @@ exports.getWholesellerProfile = async (req, res) => {
 };
 
 // Fetch driver profile
+// In authController.js
 exports.getDriverProfile = async (req, res) => {
   try {
     const { userId } = req.params;
     const driver = await Driver.findById(userId);
     if (!driver) return res.status(404).json({ message: 'Driver not found' });
-    res.status(200).json(driver);
+    
+    // Ensure photo field is included in the response
+    res.status(200).json({
+      name: driver.name,
+      email: driver.email,
+      address: driver.address,
+      vehicleType: driver.vehicleType,
+      phone: driver.phone,
+      photo: driver.photo, // Send photo URL
+    });
   } catch (error) {
     console.error('Error fetching driver profile:', error);
     res.status(500).json({ message: 'Error fetching driver profile' });
   }
 };
+
 
 // Delete account
 exports.deleteAccount = async (req, res) => {
@@ -203,6 +214,8 @@ exports.resetPassword = async (req, res) => {
 };
 
 // Update Profile Photo
+// authController.js
+
 exports.updateProfilePhoto = async (req, res) => {
   try {
     if (!req.files || !req.files.photo) {
@@ -233,13 +246,18 @@ exports.updateProfilePhoto = async (req, res) => {
 
     await photoFile.mv(filePath);
 
-    const user = await Driver.findById(userId) || await Wholeseller.findById(userId);
+    // Check and update the user (either Driver or Wholeseller)
+    let user = await Driver.findById(userId);
+    if (!user) {
+      user = await Wholeseller.findById(userId);
+    }
+    
     if (user) {
-      user.photoUrl = `/uploads/profile-photos/${fileName}`;
+      user.photo = fileName; // Update the photo field in the database
       await user.save();
       return res.status(200).json({
         message: 'Profile photo updated successfully',
-        photoUrl: user.photoUrl,
+        photoUrl: fileName,
       });
     } else {
       return res.status(404).json({ message: 'User not found' });
@@ -249,6 +267,8 @@ exports.updateProfilePhoto = async (req, res) => {
     res.status(500).json({ message: 'Error updating profile photo', error: error.message });
   }
 };
+
+
 // Fetch driver details
 exports.getAvailableDrivers = async (req, res) => {
   try {

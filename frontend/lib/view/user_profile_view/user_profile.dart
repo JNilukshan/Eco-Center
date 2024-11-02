@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:center/view/user_profile_view/available_drivers_view.dart';
-import 'package:center/view/user_profile_view/track_order_view.dart';
+import 'package:center/view/user_profile_view/notifications_view.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:center/view/user_profile_view/edit_profile_view.dart';
-import 'package:center/view/user_profile_view/notifications_view.dart';
 import 'package:center/view/main_tabview/main_tabview.dart';
 import 'package:center/view/main_tabview/dtru_main_tab.dart';
 import 'package:center/view/login/loginView.dart';
@@ -151,7 +150,7 @@ class _UserProfileViewState extends State<UserProfileView> {
       if (response.statusCode == 200) {
         final data = json.decode(responseBody);
         final newPhotoUrl =
-            'http://localhost:5000/uploads/profile-photos/${data['photoUrl']}';
+            'http://localhost:5000/uploads/profile-photos/${data['photo']}';
         await saveUserData(
             widget.userId, name ?? "", email ?? "", widget.role, newPhotoUrl);
         setState(() {
@@ -323,28 +322,27 @@ class _UserProfileViewState extends State<UserProfileView> {
                             }
                           },
                         ),
-                        ProfileOption(
-                          icon: Icons.notifications,
-                          title: "Notifications",
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => NotificationsView(
-                                  userId: widget.userId,
-                                  role: widget.role,
+                        if (widget.role != 'driver')
+                          ProfileOption(
+                            icon: Icons.notifications,
+                            title: "Notifications",
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => NotificationsView(
+                                    userId: widget.userId,
+                                    role: widget.role,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                        ProfileOption(
-                          icon: Icons.local_shipping,
-                          title: widget.role == 'wholeseller'
-                              ? "Available Drivers"
-                              : "Find the way",
-                          onTap: () {
-                            if (widget.role == 'wholeseller') {
+                              );
+                            },
+                          ),
+                        if (widget.role != 'driver')
+                          ProfileOption(
+                            icon: Icons.local_shipping,
+                            title: "Available Drivers",
+                            onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -352,19 +350,8 @@ class _UserProfileViewState extends State<UserProfileView> {
                                       const AvailableDriversView(),
                                 ),
                               );
-                            } else {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => TrackOrderView(
-                                    userId: widget.userId,
-                                    role: widget.role,
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                        ),
+                            },
+                          ),
                         ProfileOption(
                           icon: Icons.delete_forever,
                           title: "Delete Account",

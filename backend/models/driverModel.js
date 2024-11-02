@@ -14,15 +14,11 @@ const driverSchema = new mongoose.Schema({
     }
   },
   address: { type: String, required: true },
-  photo: { type: String, default: true },
+  photo: { type: String, default: null }, // Changed to default as null
   password: { type: String, required: true },
   vehicleType: { type: String },
-  vehicalnumber: { type: Date },
-  phone: {
-    type: String,
-    required: true,
-    
-  },
+  vehicalnumber: { type: String },
+  phone: { type: String, required: true },
   otp: { type: String },
   role: { type: String, default: 'driver' },
 }, { timestamps: true });
