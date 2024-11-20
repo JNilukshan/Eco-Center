@@ -65,7 +65,16 @@ class _LoginViewState extends State<LoginView> {
 
         // Display success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login successful')),
+          SnackBar(
+            content: const Text("Login successfully!"),
+            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.only(top: 10, left: 10, right: 10),
+            duration: const Duration(seconds: 2),
+          ),
         );
 
         // Navigate to the appropriate dashboard based on role
@@ -73,8 +82,11 @@ class _LoginViewState extends State<LoginView> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  MainTabView(userId: userId, role: 'wholeseller'),
+              builder: (context) => MainTabView(
+                userId: userId,
+                role: 'wholeseller',
+                updateStock: false,
+              ),
             ),
           );
         } else if (role == 'driver') {

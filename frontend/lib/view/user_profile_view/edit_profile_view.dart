@@ -83,7 +83,16 @@ class _EditProfileViewState extends State<EditProfileView> {
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully')),
+          SnackBar(
+            content: const Text("Profile updated successfully!"),
+            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.only(top: 10, left: 10, right: 10),
+            duration: const Duration(seconds: 2),
+          ),
         );
 
         // Pass back the updated profile details
@@ -117,99 +126,117 @@ class _EditProfileViewState extends State<EditProfileView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Username',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 5),
-            TextField(
-              controller: usernameController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-              ),
-            ),
+            buildRoundedField("Username", usernameController),
             const SizedBox(height: 15),
-            const Text(
-              'Email',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 5),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-              ),
-            ),
+            buildRoundedField("Email", emailController),
             const SizedBox(height: 15),
-            const Text(
-              'Address',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 5),
-            TextField(
-              controller: addressController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-              ),
-            ),
+            buildRoundedField("Address", addressController),
             const SizedBox(height: 15),
-            const Text(
-              'Password',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 5),
-            TextField(
-              controller: passwordController,
-              obscureText: !isShowPassword,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    isShowPassword ? Icons.visibility : Icons.visibility_off,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      isShowPassword = !isShowPassword;
-                    });
-                  },
-                ),
-              ),
-            ),
+            buildPasswordField("Password", passwordController, isShowPassword,
+                () {
+              setState(() {
+                isShowPassword = !isShowPassword;
+              });
+            }),
             const SizedBox(height: 15),
-            const Text(
-              'Confirm Password',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 5),
-            TextField(
-              controller: confirmPasswordController,
-              obscureText: !isShowConfirmPassword,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    isShowConfirmPassword
-                        ? Icons.visibility
-                        : Icons.visibility_off,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      isShowConfirmPassword = !isShowConfirmPassword;
-                    });
-                  },
-                ),
-              ),
-            ),
+            buildPasswordField("Confirm Password", confirmPasswordController,
+                isShowConfirmPassword, () {
+              setState(() {
+                isShowConfirmPassword = !isShowConfirmPassword;
+              });
+            }),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: updateProfile,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: TColor.primary,
+            Center(
+              child: ElevatedButton(
+                onPressed: updateProfile,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: TColor.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                        20), // Adjust the radius as needed
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: const Text("Save Changes"),
               ),
-              child: const Text("Save Changes"),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget buildRoundedField(String label, TextEditingController controller) {
+    return Container(
+      padding: const EdgeInsets.all(8.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 5),
+          TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildPasswordField(String label, TextEditingController controller,
+      bool isObscured, VoidCallback toggleVisibility) {
+    return Container(
+      padding: const EdgeInsets.all(8.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 5),
+          TextField(
+            controller: controller,
+            obscureText: !isObscured,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  isObscured ? Icons.visibility : Icons.visibility_off,
+                ),
+                onPressed: toggleVisibility,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

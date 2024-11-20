@@ -1,19 +1,21 @@
-import 'package:center/view/my_cart/payment_screen.dart';
+import 'package:center/common/color_extrnsion.dart';
+import 'package:center/view/home/vegetableservice.dart';
 import 'package:center/view/main_tabview/main_tabview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:center/common/color_extrnsion.dart';
-import 'package:center/view/home/home_view.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class MyCartView extends StatefulWidget {
   final String userId;
   final String role;
+  final Function(List<Map<String, dynamic>>) updateStock;
 
   const MyCartView({
     super.key,
     required this.userId,
-    required List<Map<String, dynamic>> cartItems,
     required this.role,
+    required this.updateStock,
   });
 
   @override
@@ -45,7 +47,7 @@ class _MyCartViewState extends State<MyCartView> {
 
         qtyControllers = List.generate(cartItems.length, (index) {
           return TextEditingController(
-            text: (cartItems[index]["quantity"] ?? '0').toString(),
+            text: (cartItems[index]["quantity"] ?? '1').toString(),
           );
         });
         isLoading = false;
@@ -63,7 +65,7 @@ class _MyCartViewState extends State<MyCartView> {
 
   void onQuantityChange(int index, String value) async {
     try {
-      int quantity = int.tryParse(value) ?? 0;
+      int quantity = int.tryParse(value) ?? 1;
 
       setState(() {
         cartItems[index]["quantity"] = quantity;
@@ -104,26 +106,105 @@ class _MyCartViewState extends State<MyCartView> {
     }
   }
 
+  Future<void> placeOrder() async {
+    setState(() => isLoading = true);
+    try {
+      double totalAmount = getTotalPrice();
+      final cartItemsData = cartItems.map((item) {
+        return {
+          'itemId': item['itemId'],
+          'name': item['name'],
+          'quantity': item['quantity'],
+          'unitPrice': item['unitprice'],
+        };
+      }).toList();
+
+      // Create the order
+      final response = await _cartService.createOrder(
+          widget.userId, cartItemsData, totalAmount);
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        final orderId = responseData['orderId'];
+
+        if (orderId != null) {
+          await _cartService.createNotification(
+              widget.userId, orderId, totalAmount);
+
+          // Clear cart in the database
+          await _cartService.clearCart(widget.userId);
+
+          // Update stock in the database for each ordered item
+          final vegetableService = VegetableService();
+          for (var orderedItem in cartItems) {
+            await vegetableService.updateStock(
+                orderedItem['itemId'], orderedItem['quantity']);
+          }
+
+          // Notify HomeView to update stock based on the ordered items
+          widget.updateStock(cartItems);
+
+          // Clear cart items locally
+          setState(() {
+            cartItems.clear();
+            qtyControllers.clear();
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text("Order placed successfully!"),
+              backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.only(top: 10, left: 10, right: 10),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+
+          // Navigate to main view
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MainTabView(
+                userId: widget.userId,
+                role: widget.role,
+                updateStock: true,
+              ),
+            ),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Fail to place order!"),
+            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.only(top: 10, left: 10, right: 10),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print("Error placing order: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error placing order.")),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("My Cart"),
         backgroundColor: TColor.primary,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MainTabView(
-                  userId: widget.userId,
-                  role: widget.role,
-                ),
-              ),
-            );
-          },
-        ),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -178,8 +259,7 @@ class _MyCartViewState extends State<MyCartView> {
                                       if (value.isEmpty ||
                                           value == "0" ||
                                           int.tryParse(value) == null) {
-                                        qtyController.text =
-                                            '1'; // Set to a minimum of 1
+                                        qtyController.text = '1';
                                         onQuantityChange(index, '1');
                                       } else if (value.startsWith("0")) {
                                         qtyController.text =
@@ -191,16 +271,15 @@ class _MyCartViewState extends State<MyCartView> {
                                     onEditingComplete: () {
                                       if (qtyController.text.isEmpty ||
                                           qtyController.text == "0") {
-                                        qtyController.text =
-                                            '1'; // Default to 1 if empty or zero
+                                        qtyController.text = '1';
                                         onQuantityChange(index, '1');
                                       }
                                     },
                                   ),
                                 ),
                                 IconButton(
-                                  icon: Icon(Icons.delete,
-                                      color: TColor.primary),
+                                  icon:
+                                      Icon(Icons.delete, color: TColor.primary),
                                   onPressed: () => _removeItem(index),
                                 ),
                               ],
@@ -209,7 +288,6 @@ class _MyCartViewState extends State<MyCartView> {
                         },
                       ),
                     ),
-                    
                   ],
                 ),
       bottomNavigationBar: cartItems.isEmpty
@@ -227,17 +305,9 @@ class _MyCartViewState extends State<MyCartView> {
                           fontSize: 18, fontWeight: FontWeight.w600),
                     ),
                     ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PaymentMethodScreen(
-                                totalPrice: getTotalPrice()),
-                          ),
-                        );
-                      },
+                      onPressed: placeOrder,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 17, 48, 28),
+                        backgroundColor: TColor.primary,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 15),
                         shape: RoundedRectangleBorder(
@@ -245,8 +315,8 @@ class _MyCartViewState extends State<MyCartView> {
                         ),
                       ),
                       child: const Text(
-                        'Payment',
-                        style: TextStyle(fontSize: 18),
+                        'Place Order',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
                       ),
                     ),
                   ],
@@ -254,5 +324,129 @@ class _MyCartViewState extends State<MyCartView> {
               ),
             ),
     );
+  }
+}
+
+class CartService {
+  final String baseUrl = "http://localhost:5000/api/cart";
+
+  Future<http.Response> createOrder(String userId,
+      List<Map<String, dynamic>> items, double totalAmount) async {
+    final orderData = {
+      'userId': userId,
+      'items': items,
+      'totalAmount': totalAmount,
+    };
+
+    return await http.post(
+      Uri.parse("http://localhost:5000/api/order/createOrder"),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(orderData),
+    );
+  }
+
+  Future<http.Response> createNotification(
+      String userId, String orderId, double totalAmount) async {
+    final notificationData = {
+      'userId': userId,
+      'orderId': orderId,
+      'totalAmount': totalAmount,
+    };
+
+    return await http.post(
+      Uri.parse("http://localhost:5000/api/notification/createNotification"),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(notificationData),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> fetchCart(String userId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/fetch-cart/$userId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data['cartItems']);
+    } else {
+      throw Exception('Failed to load cart');
+    }
+  }
+
+  Future<void> updateCartItemQuantity(
+      String userId, String itemId, int quantity) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/update-quantity/$userId/$itemId'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'quantity': quantity}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update quantity');
+    }
+  }
+
+  Future<void> removeFromCart(String userId, String itemId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/remove-item/$userId/$itemId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to remove item');
+    }
+  }
+
+  Future<void> saveCart(
+      String userId, List<Map<String, dynamic>> cartItems) async {
+    try {
+      final processedCartItems = cartItems.map((item) {
+        return {
+          'itemId': item['itemId'],
+          'name': item['name'] ?? 'Unnamed Item',
+          'quantity': item['quantity'] ?? 0,
+          'unitprice': item['unitprice'] ?? 0.0,
+        };
+      }).toList();
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/save-cart'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'cartItems': processedCartItems,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Failed to save cart. Status: ${response.statusCode}, Body: ${response.body}');
+      }
+    } catch (e) {
+      print('Error in saveCart: $e');
+      throw Exception('Error saving cart: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchOrders(String userId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/user/$userId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data['orders']);
+    } else {
+      throw Exception('Failed to load orders');
+    }
+  }
+
+  Future<void> clearCart(String userId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/clear-cart/$userId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to clear cart in the database');
+    }
   }
 }

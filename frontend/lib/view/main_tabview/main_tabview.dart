@@ -5,9 +5,17 @@ import 'package:center/view/user_profile_view/user_profile.dart';
 
 class MainTabView extends StatefulWidget {
   final String userId;
-  final String role; // Add role to differentiate between wholeseller or driver
+  final String role;
+  final bool orderSuccess;
+  final bool updateStock;
 
-  const MainTabView({super.key, required this.userId, required this.role});
+  const MainTabView({
+    super.key,
+    required this.userId,
+    required this.role,
+    this.orderSuccess = false,
+    this.updateStock = false,
+  });
 
   @override
   State<MainTabView> createState() => _MainTabViewState();
@@ -18,6 +26,7 @@ class _MainTabViewState extends State<MainTabView>
   TabController? controller;
   int selectTab = 0;
   List<Map<String, dynamic>> cartItems = [];
+  List<Map<String, dynamic>> vegetables = []; // List of vegetables
 
   @override
   void initState() {
@@ -28,6 +37,15 @@ class _MainTabViewState extends State<MainTabView>
         selectTab = controller?.index ?? 0;
       });
     });
+
+    // Show success message if orderSuccess is true
+    if (widget.orderSuccess) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Order placed successfully!")),
+        );
+      });
+    }
   }
 
   @override
@@ -42,6 +60,26 @@ class _MainTabViewState extends State<MainTabView>
     });
   }
 
+  void updateStock(List<Map<String, dynamic>> orderedItems) {
+    setState(() {
+      for (var orderedItem in orderedItems) {
+        // Find the matching vegetable in the vegetables list by ID
+        final vegetable = vegetables.firstWhere(
+          (veg) => veg["_id"] == orderedItem["itemId"],
+          orElse: () => {},
+        );
+
+        if (vegetable.isNotEmpty) {
+          // Decrease the stock count by the ordered quantity
+          vegetable["quantity"] -= orderedItem["quantity"];
+          if (vegetable["quantity"] < 0) {
+            vegetable["quantity"] = 0; // Prevent negative stock count
+          }
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,15 +90,16 @@ class _MainTabViewState extends State<MainTabView>
             updateCart: updateCart,
             userId: widget.userId,
             role: widget.role,
+            vegetables: vegetables,
           ),
           MyCartView(
-            cartItems: cartItems,
             userId: widget.userId,
-            role: 'wholeseller',
+            role: widget.role,
+            updateStock: updateStock,
           ),
           UserProfileView(
             userId: widget.userId,
-            role: 'wholeseller',
+            role: widget.role,
           ),
         ],
       ),

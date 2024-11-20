@@ -3,25 +3,27 @@ import 'package:center/view/my_cart/my_cart_view.dart';
 import 'package:flutter/material.dart';
 
 class ProductCell extends StatelessWidget {
-  final Map pObj;
-  final VoidCallback onPressed;
-  final VoidCallback onCart;
+  final Map<String, dynamic> vegetable;
   final String userId;
   final String role;
+  final Function(Map<String, dynamic>) addToCart;
 
   const ProductCell({
     super.key,
-    required this.pObj,
-    required this.onPressed,
-    required this.onCart,
+    required this.vegetable,
     required this.userId,
     required this.role,
+    required this.addToCart,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool isOutOfStock = (vegetable['quantity'] ?? 0) <= 0;
+
     return InkWell(
-      onTap: onPressed,
+      onTap: () {
+        // Optional: Implement onPressed action if you want to do something on cell tap
+      },
       child: Container(
         width: 150,
         margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -40,17 +42,20 @@ class ProductCell extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  pObj["icon"],
+                Image.network(
+                  vegetable["image"] ?? "https://via.placeholder.com/100",
                   width: 100,
                   height: 80,
                   fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(Icons.image, size: 80);
+                  },
                 ),
               ],
             ),
             const Spacer(),
             Text(
-              pObj["name"],
+              vegetable["name"] ?? "Unknown Vegetable",
               style: TextStyle(
                 color: TColor.primaryText,
                 fontSize: 16,
@@ -59,7 +64,7 @@ class ProductCell extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              "Available Stock : ",
+              "Available Stock: ${vegetable["quantity"] ?? 'N/A'} kg",
               style: TextStyle(
                 color: TColor.primaryText,
                 fontSize: 14,
@@ -67,7 +72,7 @@ class ProductCell extends StatelessWidget {
               ),
             ),
             Text(
-              " ${pObj["qty"]}${pObj["unit"]}",
+              "Unit Price: Rs. ${vegetable["unitprice"] ?? '0'}",
               style: TextStyle(
                 color: TColor.secondaryText,
                 fontSize: 16,
@@ -79,7 +84,7 @@ class ProductCell extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Rs. ${pObj["price"]}",
+                  "Rs. ${vegetable["unitprice"] ?? '0'}",
                   style: TextStyle(
                     color: TColor.primaryText,
                     fontSize: 18,
@@ -87,24 +92,34 @@ class ProductCell extends StatelessWidget {
                   ),
                 ),
                 InkWell(
-                  onTap: () {
-                    // Navigate to MyCartView, passing necessary parameters
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MyCartView(
-                          cartItems: const [], // You can update this with the actual cart items if needed
-                          userId: userId,
-                          role: role,
-                        ),
-                      ),
-                    );
-                  },
+                  onTap: isOutOfStock
+                      ? null
+                      : () {
+                          // Add item to cart using the callback
+                          addToCart({
+                            "itemId": vegetable["id"] ?? "",
+                            "name": vegetable["name"] ?? "Unnamed Item",
+                            "quantity": 1,
+                            "unitprice": vegetable["unitprice"] ?? 0,
+                          });
+
+                          // Navigate to MyCartView
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MyCartView(
+                                userId: userId,
+                                role: role,
+                                updateStock: (updatedCart) {},
+                              ),
+                            ),
+                          );
+                        },
                   child: Container(
                     width: 35,
                     height: 35,
                     decoration: BoxDecoration(
-                      color: TColor.primary,
+                      color: isOutOfStock ? Colors.grey : TColor.primary,
                       borderRadius: BorderRadius.circular(15),
                     ),
                     alignment: Alignment.center,

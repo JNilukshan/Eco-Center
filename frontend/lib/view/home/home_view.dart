@@ -1,19 +1,20 @@
-import 'dart:convert';
 import 'package:center/view/home/vegetableservice.dart';
+import 'package:center/view/my_cart/my_cart_view.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:center/common/color_extrnsion.dart';
 
 class HomeView extends StatefulWidget {
   final Function(List<Map<String, dynamic>> updatedCart) updateCart;
   final String userId;
   final String role;
+  final List<Map<String, dynamic>> vegetables;
 
   const HomeView({
     super.key,
     required this.updateCart,
     required this.userId,
     required this.role,
+    required this.vegetables,
   });
 
   @override
@@ -25,7 +26,7 @@ class _HomeViewState extends State<HomeView> {
   List<Map<String, dynamic>> cartItems = [];
   List<Map<String, dynamic>> vegetables = [];
   List<Map<String, dynamic>> filteredItems = [];
-  bool isLoading = true;
+  bool isLoading = false;
 
   final VegetableService _vegetableService = VegetableService();
   final CartService _cartService = CartService();
@@ -43,13 +44,11 @@ class _HomeViewState extends State<HomeView> {
       setState(() {
         vegetables = fetchedVegetables;
         filteredItems = vegetables;
-        isLoading = false;
+        isLoading = false; // Stop loading after data is fetched
       });
-    } catch (e) {
-      setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load vegetables: $e')),
-      );
+    } catch (error) {
+      setState(() => isLoading = false); // Stop loading if there’s an error
+      print("Error fetching vegetables: $error");
     }
   }
 
@@ -66,7 +65,6 @@ class _HomeViewState extends State<HomeView> {
 
   Future<void> addToCart(String userId, Map<String, dynamic> newItem) async {
     try {
-      // Fetch current cart items from the backend
       List<Map<String, dynamic>> currentCartItems =
           await _cartService.fetchCart(userId);
 
@@ -82,34 +80,68 @@ class _HomeViewState extends State<HomeView> {
       if (!isFound) {
         currentCartItems.add({
           "itemId": newItem["_id"],
-          "name": newItem["name"] ?? "Unnamed Item", // Ensure name is not null
+          "name": newItem["name"] ?? "Unnamed Item",
           "quantity": 1,
           "unitprice": newItem["unitprice"],
         });
       }
 
-      // Log the complete list of cart items before sending to saveCart
-      print("Complete Cart Items to be sent for user $userId:");
-      for (var item in currentCartItems) {
-        print("Cart Item: $item");
-      }
-
-      // Call saveCart with updated cart items
       await _cartService.saveCart(userId, currentCartItems);
+
+      widget.updateCart(currentCartItems);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Item added to cart successfully')),
+          SnackBar(
+            content: const Text("Item added to cart!"),
+            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.only(top: 10, left: 10, right: 10),
+            duration: const Duration(seconds: 1),
+          ),
         );
       }
     } catch (error) {
-      print('Error in addToCart: $error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add item to cart: $error')),
+          SnackBar(
+            content: const Text("Fail to add item to cart!"),
+            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.only(top: 10, left: 10, right: 10),
+            duration: const Duration(seconds: 1),
+          ),
         );
       }
     }
+  }
+
+  void updateStock(List<Map<String, dynamic>> orderedItems) {
+    setState(() {
+      for (var orderedItem in orderedItems) {
+        final vegetable = vegetables.firstWhere(
+            (veg) => veg["_id"] == orderedItem["itemId"],
+            orElse: () => {});
+
+        if (vegetable.isNotEmpty && vegetable.containsKey("quantity")) {
+          // Subtract the cart quantity from available stock
+          vegetable["quantity"] -= orderedItem["quantity"];
+
+          // Ensure quantity does not go below zero
+          if (vegetable["quantity"] < 0) {
+            vegetable["quantity"] = 0;
+          }
+        }
+      }
+      filteredItems =
+          List.from(vegetables); // Update filtered items if using a filter
+    });
   }
 
   @override
@@ -122,6 +154,7 @@ class _HomeViewState extends State<HomeView> {
       appBar: AppBar(
         title: const Text('Available Vegetables'),
         backgroundColor: TColor.primary,
+        automaticallyImplyLeading: false, // Hide back button
       ),
       body: SafeArea(
         child: isLoading
@@ -251,101 +284,5 @@ class _HomeViewState extends State<HomeView> {
               ),
       ),
     );
-  }
-}
-
-class CartService {
-  final String baseUrl = "http://localhost:5000/api/cart";
-
-  Future<void> saveCart(
-      String userId, List<Map<String, dynamic>> cartItems) async {
-    try {
-      final processedCartItems = cartItems.map((item) {
-        return {
-          'itemId': item['itemId'],
-          'name': item['name'] ?? 'Unnamed Item', // Ensure name is not null
-          'quantity': item['quantity'] ?? 0,
-          'unitprice': item['unitprice'] ?? 0.0,
-        };
-      }).toList();
-
-      // Log each processed cart item to ensure fields are correctly set
-      print("Processed Cart Items for user $userId:");
-      for (var item in processedCartItems) {
-        print("Processed Cart Item: $item");
-      }
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/save-cart'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'userId': userId,
-          'cartItems': processedCartItems,
-        }),
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception(
-            'Failed to save cart. Status: ${response.statusCode}, Body: ${response.body}');
-      }
-    } catch (e) {
-      print('Error in saveCart: $e');
-      throw Exception('Error saving cart: $e');
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> fetchCart(String userId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/fetch-cart/$userId'),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return List<Map<String, dynamic>>.from(data['cartItems']);
-      } else {
-        throw Exception('Failed to load cart. Status: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error in fetchCart: $e');
-      throw Exception('Error fetching cart: $e');
-    }
-  }
-
-  Future<void> updateCartItemQuantity(
-      String userId, String itemId, int quantity) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/update-quantity/$userId/$itemId'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'quantity': quantity}),
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception(
-            'Failed to update quantity. Status: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error in updateCartItemQuantity: $e');
-      throw Exception('Error updating quantity: $e');
-    }
-  }
-
-  Future<void> removeFromCart(String userId, String itemId) async {
-    try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/remove-item/$userId/$itemId'),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception(
-            'Failed to remove item. Status: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error in removeFromCart: $e');
-      throw Exception('Error removing item from cart: $e');
-    }
   }
 }

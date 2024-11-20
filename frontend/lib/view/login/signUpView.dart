@@ -64,7 +64,16 @@ class _SignUpViewState extends State<SignUpView> {
 
         // Display success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful')),
+          SnackBar(
+            content: const Text("Registration successful!"),
+            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.only(top: 10, left: 10, right: 10),
+            duration: const Duration(seconds: 2),
+          ),
         );
 
         // Navigate to the appropriate dashboard based on role
@@ -72,8 +81,11 @@ class _SignUpViewState extends State<SignUpView> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  MainTabView(userId: userId, role: 'wholeseller'),
+              builder: (context) => MainTabView(
+                userId: userId,
+                role: 'wholeseller',
+                updateStock: false,
+              ),
             ),
           );
         } else if (widget.role == 'driver') {
@@ -130,172 +142,192 @@ class _SignUpViewState extends State<SignUpView> {
                       ],
                     ),
                     SizedBox(height: media.width * 0.02),
-                    Text(
-                      "Sign Up",
-                      style: TextStyle(
-                        color: TColor.primaryText,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w600,
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
                       ),
-                    ),
-                    SizedBox(height: media.width * 0.06),
-                    LineTextfield(
-                      controller: txtUsername,
-                      title: "Username",
-                      placeholder: "Enter your username",
-                      keyboardType: TextInputType.text,
-                      obscureText: false,
-                      validator: (value) => null,
-                      titleTextStyle: const TextStyle(
-                          fontWeight: FontWeight.bold), // Bold title
-                    ),
-                    SizedBox(height: media.width * 0.04),
-                    LineTextfield(
-                      controller: txtEmail,
-                      title: "Email",
-                      placeholder: "Enter your email address",
-                      keyboardType: TextInputType.emailAddress,
-                      obscureText: false,
-                      validator: (value) => null,
-                      titleTextStyle: const TextStyle(
-                          fontWeight: FontWeight.bold), // Bold title
-                    ),
-                    SizedBox(height: media.width * 0.04),
-                    LineTextfield(
-                      controller: txtAddress,
-                      title: "Address",
-                      placeholder: "Enter your address",
-                      keyboardType: TextInputType.streetAddress,
-                      obscureText: false,
-                      validator: (value) => null,
-                      titleTextStyle: const TextStyle(
-                          fontWeight: FontWeight.bold), // Bold title
-                    ),
-                    SizedBox(height: media.width * 0.04),
-                    LineTextfield(
-                      controller: txtPhone,
-                      title: "Phone Number",
-                      placeholder: "Enter your phone number",
-                      keyboardType: TextInputType.phone,
-                      obscureText: false,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your phone number';
-                        }
-                        if (!RegExp(r'^\d{9}$').hasMatch(value)) {
-                          return 'Phone number should contain 9 digits after +94';
-                        }
-                        return null;
-                      },
-                      titleTextStyle: const TextStyle(
-                          fontWeight: FontWeight.bold), // Bold title
-                      decoration: const InputDecoration(
-                        prefixText: '+94 ',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Sign Up",
+                            style: TextStyle(
+                              color: TColor.primaryText,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: media.width * 0.06),
+                          LineTextfield(
+                            controller: txtUsername,
+                            title: "Username",
+                            placeholder: "Enter your username",
+                            keyboardType: TextInputType.text,
+                            obscureText: false,
+                            validator: (value) => null,
+                            titleTextStyle:
+                                const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: media.width * 0.04),
+                          LineTextfield(
+                            controller: txtEmail,
+                            title: "Email",
+                            placeholder: "Enter your email address",
+                            keyboardType: TextInputType.emailAddress,
+                            obscureText: false,
+                            validator: (value) => null,
+                            titleTextStyle:
+                                const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: media.width * 0.04),
+                          LineTextfield(
+                            controller: txtAddress,
+                            title: "Address",
+                            placeholder: "Enter your address",
+                            keyboardType: TextInputType.streetAddress,
+                            obscureText: false,
+                            validator: (value) => null,
+                            titleTextStyle:
+                                const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: media.width * 0.04),
+                          LineTextfield(
+                            controller: txtPhone,
+                            title: "Phone Number",
+                            placeholder: "Enter your phone number",
+                            keyboardType: TextInputType.phone,
+                            obscureText: false,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your phone number';
+                              }
+                              if (!RegExp(r'^\d{9}$').hasMatch(value)) {
+                                return 'Phone number should contain 9 digits after +94';
+                              }
+                              return null;
+                            },
+                            titleTextStyle:
+                                const TextStyle(fontWeight: FontWeight.bold),
+                            decoration: const InputDecoration(
+                              prefixText: '+94 ',
+                            ),
+                          ),
+                          if (widget.role == 'driver') ...[
+                            SizedBox(height: media.width * 0.04),
+                            DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: "Vehicle Type",
+                                labelStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 12),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(5)),
+                              ),
+                              value: selectedVehicleType,
+                              hint: const Text('Select your vehicle type'),
+                              items: vehicleTypes.map((String vehicle) {
+                                return DropdownMenuItem<String>(
+                                  value: vehicle,
+                                  child: Text(vehicle),
+                                );
+                              }).toList(),
+                              onChanged: (newValue) {
+                                setState(() {
+                                  selectedVehicleType = newValue;
+                                });
+                              },
+                            ),
+                            SizedBox(height: media.width * 0.04),
+                            LineTextfield(
+                              controller: txtLicenseExpiry,
+                              title: "Vehicle number",
+                              placeholder: "Enter your vehicle number",
+                              keyboardType: TextInputType.text,
+                              obscureText: false,
+                              validator: (value) => null,
+                              titleTextStyle:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                          SizedBox(height: media.width * 0.04),
+                          LineTextfield(
+                            controller: txtPassword,
+                            title: "Password",
+                            placeholder: "Enter your Password",
+                            keyboardType: TextInputType.visiblePassword,
+                            obscureText: !isShowPassword,
+                            right: IconButton(
+                              icon: Icon(
+                                isShowPassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  isShowPassword = !isShowPassword;
+                                });
+                              },
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your password';
+                              }
+                              if (value.length < 7) {
+                                return 'Password must be at least 7 characters long';
+                              }
+                              if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]')
+                                  .hasMatch(value)) {
+                                return 'Password must contain at least one symbol';
+                              }
+                              return null;
+                            },
+                            titleTextStyle:
+                                const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: media.width * 0.04),
+                          LineTextfield(
+                            controller: confirmPasswordController,
+                            title: "Confirm Password",
+                            placeholder: "Re-enter your password",
+                            keyboardType: TextInputType.visiblePassword,
+                            obscureText: !isShowConfirmPassword,
+                            right: IconButton(
+                              icon: Icon(
+                                isShowConfirmPassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  isShowConfirmPassword =
+                                      !isShowConfirmPassword;
+                                });
+                              },
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please confirm your password';
+                              }
+                              if (value != txtPassword.text) {
+                                return 'Passwords do not match';
+                              }
+                              return null;
+                            },
+                            titleTextStyle:
+                                const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
-                    ),
-                    if (widget.role == 'driver') ...[
-                      SizedBox(height: media.width * 0.04),
-                      DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: "Vehicle Type",
-                          labelStyle: const TextStyle(
-                              fontWeight: FontWeight.bold), // Bold title
-                          contentPadding: const EdgeInsets.symmetric(
-                              vertical: 16, horizontal: 12),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(5)),
-                        ),
-                        value: selectedVehicleType,
-                        hint: const Text('Select your vehicle type'),
-                        items: vehicleTypes.map((String vehicle) {
-                          return DropdownMenuItem<String>(
-                            value: vehicle,
-                            child: Text(vehicle),
-                          );
-                        }).toList(),
-                        onChanged: (newValue) {
-                          setState(() {
-                            selectedVehicleType = newValue;
-                          });
-                        },
-                      ),
-                      SizedBox(height: media.width * 0.04),
-                      LineTextfield(
-                        controller: txtLicenseExpiry,
-                        title: "Vehicle number",
-                        placeholder: "Enter your vehicle number",
-                        keyboardType: TextInputType.text,
-                        obscureText: false,
-                        validator: (value) => null,
-                        titleTextStyle: const TextStyle(
-                            fontWeight: FontWeight.bold), // Bold title
-                      ),
-                    ],
-                    SizedBox(height: media.width * 0.04),
-                    LineTextfield(
-                      controller: txtPassword,
-                      title: "Password",
-                      placeholder: "Enter your Password",
-                      keyboardType: TextInputType.visiblePassword,
-                      obscureText: !isShowPassword,
-                      right: IconButton(
-                        icon: Icon(
-                          isShowPassword
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            isShowPassword = !isShowPassword;
-                          });
-                        },
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
-                        if (value.length < 7) {
-                          return 'Password must be at least 7 characters long';
-                        }
-                        if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]')
-                            .hasMatch(value)) {
-                          return 'Password must contain at least one symbol';
-                        }
-                        return null; // Return null if validation is successful
-                      },
-                      titleTextStyle: const TextStyle(
-                          fontWeight: FontWeight.bold), // Bold title
-                    ),
-                    SizedBox(height: media.width * 0.04),
-                    LineTextfield(
-                      controller: confirmPasswordController,
-                      title: "Confirm Password",
-                      placeholder: "Re-enter your password",
-                      keyboardType: TextInputType.visiblePassword,
-                      obscureText: !isShowConfirmPassword,
-                      right: IconButton(
-                        icon: Icon(
-                          isShowConfirmPassword
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            isShowConfirmPassword = !isShowConfirmPassword;
-                          });
-                        },
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please confirm your password';
-                        }
-                        if (value != txtPassword.text) {
-                          return 'Passwords do not match';
-                        }
-                        return null;
-                      },
-                      titleTextStyle: const TextStyle(
-                          fontWeight: FontWeight.bold), // Bold title
                     ),
                     SizedBox(height: media.width * 0.05),
                     RoundButton(

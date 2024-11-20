@@ -10,6 +10,8 @@ import 'package:center/view/user_profile_view/edit_profile_view.dart';
 import 'package:center/view/main_tabview/main_tabview.dart';
 import 'package:center/view/main_tabview/dtru_main_tab.dart';
 import 'package:center/view/login/loginView.dart';
+import 'package:center/view/user_profile_view/order_view.dart';
+import 'package:center/view/user_profile_view/delivery_view.dart';
 import 'package:center/common/color_extrnsion.dart';
 
 class UserProfileView extends StatefulWidget {
@@ -63,21 +65,16 @@ class _UserProfileViewState extends State<UserProfileView> {
 
     try {
       final response = await http.get(Uri.parse(profileUrl));
-      print("API response status: ${response.statusCode}");
-      print("API response body: ${response.body}");
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
         if (data != null) {
           setState(() {
             name = data['name'] ?? 'Name not available';
             email = data['email'] ?? 'Email not available';
             photoUrl = data['photo'] != null
-                ? 'http://localhost:5000/uploads/profile-photos/${data['photo']}' // Construct full URL
+                ? 'http://localhost:5000/uploads/profile-photos/${data['photo']}'
                 : null;
           });
-
           await saveUserData(
               widget.userId, name!, email!, widget.role, photoUrl);
         } else {
@@ -216,6 +213,7 @@ class _UserProfileViewState extends State<UserProfileView> {
                   builder: (context) => MainTabView(
                     userId: widget.userId,
                     role: widget.role,
+                    updateStock: false,
                   ),
                 ),
               );
@@ -238,67 +236,94 @@ class _UserProfileViewState extends State<UserProfileView> {
           : SafeArea(
               child: Column(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      children: [
-                        Stack(
-                          alignment: Alignment.bottomRight,
-                          children: [
-                            CircleAvatar(
-                              radius: 50,
-                              backgroundImage: _getProfileImage(),
-                            ),
-                            Positioned(
-                              right: 0,
-                              bottom: 0,
-                              child: Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      spreadRadius: 2,
-                                      blurRadius: 4,
-                                    ),
-                                  ],
-                                ),
-                                child: IconButton(
-                                  padding: const EdgeInsets.all(0),
-                                  icon: Icon(Icons.edit,
-                                      color: TColor.primary, size: 20),
-                                  onPressed: () =>
-                                      _pickImageAndUpload(widget.userId),
+                  // Profile Header Section with rounded background
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Container(
+                      width: double.infinity,
+                      height: 150,
+                      padding: const EdgeInsets.all(20.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Stack(
+                            alignment: Alignment.topLeft,
+                            children: [
+                              CircleAvatar(
+                                radius: 35, // Slightly larger image
+                                backgroundImage: _getProfileImage(),
+                              ),
+                              Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        spreadRadius: 2,
+                                        blurRadius: 3,
+                                      ),
+                                    ],
+                                  ),
+                                  child: IconButton(
+                                    padding: const EdgeInsets.all(0),
+                                    icon: Icon(Icons.edit,
+                                        color: TColor.primary, size: 12),
+                                    onPressed: () =>
+                                        _pickImageAndUpload(widget.userId),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          name ?? 'Loading...',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          email ?? 'Loading...',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
+                          const SizedBox(width: 22),
+                          // Name and Email Section
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 20),
+                              Text(
+                                name ?? 'Loading...',
+                                style: const TextStyle(
+                                  fontSize: 18, // Slightly larger font size
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 9),
+                              Text(
+                                email ?? 'Loading...',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                  const Divider(),
+                  const SizedBox(height: 16),
+                  // Profile Options Section
                   Expanded(
                     child: ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       children: [
                         ProfileOption(
                           icon: Icons.edit,
@@ -332,7 +357,6 @@ class _UserProfileViewState extends State<UserProfileView> {
                                 MaterialPageRoute(
                                   builder: (context) => NotificationsView(
                                     userId: widget.userId,
-                                    role: widget.role,
                                   ),
                                 ),
                               );
@@ -348,6 +372,36 @@ class _UserProfileViewState extends State<UserProfileView> {
                                 MaterialPageRoute(
                                   builder: (context) =>
                                       const AvailableDriversView(),
+                                ),
+                              );
+                            },
+                          ),
+                        if (widget.role == 'wholeseller')
+                          ProfileOption(
+                            icon: Icons.history,
+                            title: "View Order History",
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => OrderView(
+                                    userId: widget.userId,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        if (widget.role == 'driver')
+                          ProfileOption(
+                            icon: Icons.history,
+                            title: "View Delivery History",
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DeliveryView(
+                                    userId: widget.userId,
+                                  ),
                                 ),
                               );
                             },
@@ -382,7 +436,26 @@ class _UserProfileViewState extends State<UserProfileView> {
                             );
                           },
                         ),
-                      ],
+                      ].map((option) {
+                        // Wrap each option in a rounded container
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: option,
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ],

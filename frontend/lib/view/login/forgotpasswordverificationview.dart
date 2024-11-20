@@ -71,38 +71,73 @@ class _ForgotPasswordVerificationViewState
         title: const Text('Verification Code'),
         backgroundColor: TColor.primary,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter the verification code sent to your email:',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: verificationCodeController,
-              decoration: const InputDecoration(
-                labelText: 'Verification Code',
-                border: OutlineInputBorder(),
+      body: Center(
+        // Center the content vertically and horizontally
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: SingleChildScrollView(
+            // Allows scrolling for small screens
+            child: Container(
+              padding: const EdgeInsets.all(20), // Add padding inside the box
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    spreadRadius: 5,
+                    blurRadius: 7,
+                    offset: const Offset(0, 3), // changes position of shadow
+                  ),
+                ],
               ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: isLoading ? null : verifyOTP,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: TColor.primary,
-                ),
-                child: isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Verify Code'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min, // Center the column
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Enter the verification code sent to your email:',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center, // Center the text
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: verificationCodeController,
+                    decoration: InputDecoration(
+                      labelText: 'Verification Code',
+                      border: const OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: TColor.primary, width: 2.0),
+                      ),
+                      errorBorder: const OutlineInputBorder(
+                        borderSide: BorderSide(color: Color.fromARGB(255, 10, 62, 28), width: 2.0),
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : verifyOTP,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: TColor.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        textStyle: const TextStyle(fontSize: 16),
+                      ),
+                      child: isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Verify Code'),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

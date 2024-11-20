@@ -30,6 +30,7 @@
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.15",
     "sequelize": "^6.37.4",
+    "socket.io": "^4.8.1",
     "stripe": "^17.3.0"
   },
   "devDependencies": {

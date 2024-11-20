@@ -1,153 +1,197 @@
 import 'package:center/common/color_extrnsion.dart';
 import 'package:flutter/material.dart';
-import 'notification_details_view.dart'; // Import the notification details view
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'notification_details_view.dart';
 
 class NotificationsView extends StatefulWidget {
-  const NotificationsView({super.key, required String userId, required String role});
+  final String userId;
+
+  const NotificationsView({super.key, required this.userId});
 
   @override
-  State<NotificationsView> createState() => _NotificationsViewState();
+  _NotificationsViewState createState() => _NotificationsViewState();
 }
 
 class _NotificationsViewState extends State<NotificationsView> {
-  bool notificationsAccepted = true; // Default to accepting notifications
+  List<Map<String, dynamic>> notifications = [];
+  IO.Socket? socket;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchNotifications();
+    connectToWebSocket();
+  }
+
+  Future<void> fetchNotifications() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'http://localhost:5000/api/notification/getNotifications/${widget.userId}'),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          notifications = List<Map<String, dynamic>>.from(
+            json.decode(response.body)['notifications'],
+          );
+
+          // Sort notifications by date in descending order (latest first)
+          notifications.sort((a, b) {
+            final dateA = DateTime.parse(a['dateTime']);
+            final dateB = DateTime.parse(b['dateTime']);
+            return dateB.compareTo(dateA);
+          });
+        });
+      } else {
+        _showErrorSnackBar('Failed to load notifications');
+      }
+    } catch (error) {
+      _showErrorSnackBar('An error occurred');
+    }
+  }
+
+  void connectToWebSocket() {
+    socket = IO.io('http://localhost:5000',
+        IO.OptionBuilder().setTransports(['websocket']).build());
+
+    socket!.onConnect((_) {
+      print('Connected to WebSocket');
+    });
+
+    socket!.on('newNotification', (data) {
+      setState(() {
+        notifications.insert(0, Map<String, dynamic>.from(data));
+
+        // Sort notifications after adding the new one
+        notifications.sort((a, b) {
+          final dateA = DateTime.parse(a['dateTime']);
+          final dateB = DateTime.parse(b['dateTime']);
+          return dateB.compareTo(dateA);
+        });
+      });
+
+      // Show the popup dialog for the new notification
+      _showNotificationPopup(Map<String, dynamic>.from(data));
+    });
+
+    socket!.onDisconnect((_) => print('Disconnected from WebSocket'));
+  }
+
+  void _showNotificationPopup(Map<String, dynamic> notification) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(notification['message'] ?? 'New Notification'),
+          content: Text(
+            notification['dateTime'] != null
+                ? formatDate(notification['dateTime'])
+                : 'No Date Available',
+          ),
+          actions: [
+            TextButton(
+              child: const Text('View Details'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NotificationDetailsView(
+                      notification: notification,
+                    ),
+                  ),
+                );
+              },
+            ),
+            TextButton(
+              child: const Text('Dismiss'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  String formatDate(String dateTimeString) {
+    final DateTime dateTime = DateTime.parse(dateTimeString);
+    return DateFormat('yyyy-MM-dd – kk:mm').format(dateTime);
+  }
+
+  @override
+  void dispose() {
+    socket?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Notifications"),
+        title: const Text('Notifications'),
         backgroundColor: TColor.primary,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            // Notification toggle
-            const SizedBox(height: 20),
+      body: notifications.isEmpty
+          ? const Center(child: Text('No notifications available'))
+          : ListView.builder(
+              itemCount: notifications.length,
+              itemBuilder: (context, index) {
+                final notification = notifications[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color.fromARGB(255, 103, 102, 102).withOpacity(0.3),
+                          spreadRadius: 2,
+                          blurRadius: 5,
+                          offset: const Offset(0, 3), // Shadow position
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      title: Text(notification['message'] ?? 'No Title'),
+                      subtitle: Text(notification['dateTime'] != null
+                          ? formatDate(notification['dateTime'])
+                          : 'No Date'),
+                      onTap: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => NotificationDetailsView(
+                              notification: notification,
+                            ),
+                          ),
+                        );
 
-            // Divider to separate the notification examples
-            const Divider(),
-            const SizedBox(height: 10),
-
-            // Example Notifications
-            Expanded(
-              child: ListView(
-                children: [
-                  ExampleNotification(
-                    title: "Ride Arrived",
-                    description: "Your ride is waiting at your location. Please meet the driver.",
-                    icon: Icons.directions_car,
-                    notificationTime: "Just Now",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotificationDetailsView(
-                            title: "Ride Arrived",
-                            description: "Your ride has arrived and is waiting at your location.",
-                          ),
-                        ),
-                      );
-                    },
+                        // Remove the notification from the list if it was deleted
+                        if (result == true) {
+                          setState(() {
+                            notifications.removeAt(index);
+                          });
+                        }
+                      },
+                    ),
                   ),
-                  ExampleNotification(
-                    title: "Promo: 10% off your next ride!",
-                    description: "Use code PICK10 to get 10% off your next ride. Expires in 2 days.",
-                    icon: Icons.local_offer,
-                    notificationTime: "1 hour ago",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotificationDetailsView(
-                            title: "Promo Code",
-                            description: "Use code PICK10 to get 10% off your next ride.",
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  ExampleNotification(
-                    title: "Ride Completed",
-                    description: "Your ride to Colombo is complete. Rate your driver.",
-                    icon: Icons.star_rate,
-                    notificationTime: "2 hours ago",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotificationDetailsView(
-                            title: "Ride Completed",
-                            description: "Your ride to Colombo is complete. Please rate your driver.",
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  ExampleNotification(
-                    title: "Fare Update",
-                    description: "Your fare for the recent trip has been updated. Check the details.",
-                    icon: Icons.attach_money,
-                    notificationTime: "Yesterday",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotificationDetailsView(
-                            title: "Fare Update",
-                            description: "Your fare for the recent trip has been updated.",
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+                );
+              },
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Widget for displaying individual notifications
-class ExampleNotification extends StatelessWidget {
-  final String title;
-  final String description;
-  final IconData icon;
-  final String notificationTime;
-  final VoidCallback onTap;
-
-  const ExampleNotification({
-    super.key,
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.notificationTime,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: TColor.primary.withOpacity(0.2),
-          child: Icon(icon, color: TColor.primary),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(description),
-        trailing: Text(
-          notificationTime,
-          style: const TextStyle(color: Colors.grey, fontSize: 12),
-        ),
-        onTap: onTap, // Navigate to notification details on tap
-      ),
     );
   }
 }

@@ -1,7 +1,7 @@
+import 'package:center/view/main_tabview/dtru_main_tab.dart';
+import 'package:center/view/main_tabview/main_tabview.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:center/view/main_tabview/main_tabview.dart';
-import 'package:center/view/main_tabview/dtru_main_tab.dart';
 
 class TrackOrderLocationView extends StatefulWidget {
   final String userId;
@@ -20,10 +20,9 @@ class TrackOrderLocationView extends StatefulWidget {
 class _TrackOrderLocationViewState extends State<TrackOrderLocationView> {
   late GoogleMapController mapController;
 
-  // Default initial position
   final LatLng _initialPosition =
-      const LatLng(37.7749, -122.4194); // San Francisco coordinates
-  final Set<Marker> _markers = {}; // To hold markers
+      const LatLng(37.7749, -122.4194); // Default location
+  final Set<Marker> _markers = {};
 
   @override
   void initState() {
@@ -46,7 +45,6 @@ class _TrackOrderLocationViewState extends State<TrackOrderLocationView> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // Navigate based on user role
             if (widget.role == 'driver') {
               Navigator.pushReplacement(
                 context,
@@ -64,6 +62,7 @@ class _TrackOrderLocationViewState extends State<TrackOrderLocationView> {
                   builder: (context) => MainTabView(
                     userId: widget.userId,
                     role: widget.role,
+                    updateStock: false,
                   ),
                 ),
               );
@@ -74,7 +73,6 @@ class _TrackOrderLocationViewState extends State<TrackOrderLocationView> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Google Maps widget
           Expanded(
             child: GoogleMap(
               onMapCreated: (GoogleMapController controller) {
@@ -88,8 +86,6 @@ class _TrackOrderLocationViewState extends State<TrackOrderLocationView> {
             ),
           ),
           const SizedBox(height: 20),
-
-          // Order details or tracking info
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Column(
@@ -118,8 +114,6 @@ class _TrackOrderLocationViewState extends State<TrackOrderLocationView> {
             ),
           ),
           const Spacer(),
-
-          // Buttons for user interaction
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
@@ -142,10 +136,8 @@ class _TrackOrderLocationViewState extends State<TrackOrderLocationView> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 10),
                   ),
-                  child: const Text(
-                    'Track Again',
-                    style: TextStyle(fontSize: 18),
-                  ),
+                  child:
+                      const Text('Track Again', style: TextStyle(fontSize: 18)),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -160,14 +152,11 @@ class _TrackOrderLocationViewState extends State<TrackOrderLocationView> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: const Color.fromARGB(255, 28, 70, 10),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 10),
                   ),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(fontSize: 18),
-                  ),
+                  child: const Text('Cancel', style: TextStyle(fontSize: 18)),
                 ),
               ],
             ),

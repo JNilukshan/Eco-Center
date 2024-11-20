@@ -27,16 +27,11 @@ class _ForgotPasswordEmailViewState extends State<ForgotPasswordEmailView> {
     setState(() => isLoading = true);
 
     try {
-      // Call the sendOTP method and get the full response
-      final response = await AuthService.sendOTP(
-          emailController.text); // Fetch the full HTTP response
+      final response = await AuthService.sendOTP(emailController.text);
 
-      // Check if the response was successful
       if (response.statusCode == 200) {
-        // Decode the response body into a JSON map (only after a successful status code)
         final Map<String, dynamic> responseBody = jsonDecode(response.body);
 
-        // Navigate to the OTP verification screen
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -46,27 +41,24 @@ class _ForgotPasswordEmailViewState extends State<ForgotPasswordEmailView> {
           ),
         );
 
-        // Show a success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content:
-                  Text(responseBody['message'] ?? 'OTP sent successfully')),
+            content: Text(responseBody['message'] ?? 'OTP sent successfully'),
+          ),
         );
       } else {
-        // Decode and handle error responses
         final errorBody = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorBody['message'] ?? 'Failed to send OTP')),
         );
       }
     } catch (e) {
-      // Handle any exceptions, such as network or decoding errors
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An error occurred: $e')),
       );
     } finally {
       if (mounted) {
-        setState(() => isLoading = false); // Reset the loading state
+        setState(() => isLoading = false);
       }
     }
   }
@@ -78,38 +70,75 @@ class _ForgotPasswordEmailViewState extends State<ForgotPasswordEmailView> {
         title: const Text('Forgot Password'),
         backgroundColor: TColor.primary,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter your email address:',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
+      body: Center(
+        // Center the content vertically and horizontally
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: SingleChildScrollView(
+            // Allows scrolling for small screens
+            child: Container(
+              padding: const EdgeInsets.all(20), // Add padding inside the box
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    spreadRadius: 5,
+                    blurRadius: 7,
+                    offset: const Offset(0, 3), // changes position of shadow
+                  ),
+                ],
               ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: isLoading ? null : sendOTP,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: TColor.primary,
-                ),
-                child: isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Send Verification Code'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min, // Center the column
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Enter your email address:',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center, // Center the text
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: emailController,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      border: const OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: TColor.primary, width: 2.0),
+                      ),
+                      errorBorder: const OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color: Color.fromARGB(255, 17, 85, 12), width: 2.0),
+                      ),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : sendOTP,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: TColor.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        textStyle: const TextStyle(fontSize: 16),
+                      ),
+                      child: isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Send Verification Code'),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -1,3 +1,5 @@
+// models/wholesellerModel.js
+
 const mongoose = require('mongoose');
 
 const wholesellerSchema = new mongoose.Schema({
@@ -6,19 +8,16 @@ const wholesellerSchema = new mongoose.Schema({
     type: String,
     unique: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(v); // Email format validation
       },
-      message: props => `${props.value} is not a valid email address!`
-    }
+      message: (props) => `${props.value} is not a valid email address!`,
+    },
   },
   address: { type: String },
   photo: { type: String, default: true },
   password: { type: String },
-  phone: {
-    type: String,
-    
-  },
+  phone: { type: String },
   otp: { type: String },
   role: { type: String, default: 'wholeseller' },
   vegetablesCart: [
@@ -27,9 +26,12 @@ const wholesellerSchema = new mongoose.Schema({
       name: { type: String, required: true },
       quantity: { type: Number, required: true },
       unitprice: { type: Number, required: false },
-    }
+    },
   ],
-}, { timestamps: true });
+  notifications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Notification' }], // Reference Notification model
+}, 
+{ timestamps: true }
+);
 
 const Wholeseller = mongoose.model('Wholeseller', wholesellerSchema);
 module.exports = Wholeseller;

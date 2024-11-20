@@ -5,49 +5,65 @@ const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const vegetableRoutes = require('./routes/vegetableRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const fileUpload = require('express-fileupload');
 const session = require('express-session');
-const paymentRoutes = require('./routes/paymentRoutes');
-const path = require('path'); // Import path module
+const path = require('path');
+const orderRoutes = require('./routes/orderRoutes');
+const http = require('http');
+const { Server } = require('socket.io');
 
-// Load environment variables
 dotenv.config();
 
-// Initialize Express app
 const app = express();
+const server = http.createServer(app);  
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5000',  
+    methods: ['GET', 'POST']
+  }
+});
 
-// Connect to the database
 connectDB();
 
-// Middleware for JSON parsing and CORS
 app.use(express.json());
 app.use(cors());
 
-// Enable file upload with temporary file storage
 app.use(fileUpload({
-  useTempFiles: true,
-  tempFileDir: '/tmp/',
+    useTempFiles: true,
+    tempFileDir: '/tmp/',
 }));
 
-// Serve static files for uploaded images
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Session configuration
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } // set to true if using HTTPS in production
+    cookie: { secure: false }
   })
 );
 
-// Route configurations
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
-app.use('/api/vegetables', vegetableRoutes); 
-app.use('/api/payments', paymentRoutes);
+app.use('/api/vegetables', vegetableRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/notification', notificationRoutes);
+app.use('/api/order', orderRoutes);
 
-// Start the server
+// Initialize Socket.io connection
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id);
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
+});
+
+// Export io to use in other modules
+app.set('socketio', io);
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

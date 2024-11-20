@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
             builder: (context) => HomeView(
               updateCart: (updatedCart) {},
               userId: args['userId'],
-              role: args['role'],
+              role: args['role'], vegetables: const [],
             ),
           );
         }

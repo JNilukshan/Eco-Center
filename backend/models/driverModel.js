@@ -21,6 +21,7 @@ const driverSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   otp: { type: String },
   role: { type: String, default: 'driver' },
+  isAvailable: { type: Boolean, default: false} 
 }, { timestamps: true });
 
 const Driver = mongoose.model('Driver', driverSchema);

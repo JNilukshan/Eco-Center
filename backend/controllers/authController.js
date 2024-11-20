@@ -101,7 +101,6 @@ exports.getWholesellerProfile = async (req, res) => {
   }
 };
 
-// Fetch driver profile
 // In authController.js
 exports.getDriverProfile = async (req, res) => {
   try {
@@ -114,7 +113,7 @@ exports.getDriverProfile = async (req, res) => {
       name: driver.name,
       email: driver.email,
       address: driver.address,
-      vehicleType: driver.vehicleType,
+      vehicalnumber: driver.vehicalnumber,
       phone: driver.phone,
       photo: driver.photo, // Send photo URL
     });
@@ -214,7 +213,6 @@ exports.resetPassword = async (req, res) => {
 };
 
 // Update Profile Photo
-// authController.js
 
 exports.updateProfilePhoto = async (req, res) => {
   try {
@@ -272,9 +270,33 @@ exports.updateProfilePhoto = async (req, res) => {
 // Fetch driver details
 exports.getAvailableDrivers = async (req, res) => {
   try {
-    const drivers = await Driver.find({}, 'name vehicleType phone address photo');
+    // Include isAvailable and vehicalnumber in the selected fields
+    const drivers = await Driver.find({}, 'name vehicleType phone address photo isAvailable vehicalnumber');
     res.status(200).json(drivers);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching drivers', error });
   }
 };
+
+exports.updateDriverAvailability = async (req, res) => {
+  const { driverId } = req.params;
+  const { isAvailable } = req.body;
+
+  try {
+    const updatedDriver = await Driver.findByIdAndUpdate(
+      driverId,
+      { isAvailable: isAvailable },
+      { new: true }
+    );
+
+    if (!updatedDriver) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
+
+    res.status(200).json({ message: "Driver availability updated", driver: updatedDriver });
+  } catch (error) {
+    console.error("Error updating driver availability:", error);
+    res.status(500).json({ message: "Error updating driver availability" });
+  }
+};
+
